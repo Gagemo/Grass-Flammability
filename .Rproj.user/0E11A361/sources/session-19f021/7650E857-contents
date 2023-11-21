@@ -1,0 +1,70 @@
+################################################################################
+################################################################################
+#########################   Grass - Flammability   #############################
+#########################         Weight           #############################
+#########################  University of Florida   #############################
+#########################     Gage LaPierre        #############################
+#########################          2023            #############################
+################################################################################
+################################################################################
+
+######################### Clears Environment & History  ########################
+
+rm(list=ls(all=TRUE))
+cat("\014") 
+#
+#########################     Installs Packages   ##############################
+
+list.of.packages <- c("tidyverse", "vegan", "agricolae")
+new.packages <- list.of.packages[!(list.of.packages %in% 
+                                     installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+##########################     Loads Packages     ##############################
+
+library(tidyverse)
+library(vegan)
+library(agricolae)
+
+##########################     Read in 2022 Data  ##############################
+
+GRASS = read.csv("Data/Flammability Project - Temp.csv")
+
+str(GRASS)
+summary(GRASS)
+
+GRASS$T1 <- gsub("°C", "", GRASS$T1)
+GRASS <- strsplit(x, "~")
+GRASS <- sapply(x, as.numeric)
+t(x)
+GRASS <- GRASS %>% 
+  group_by(Sample) %>%                 
+  summarise(MaxTemp = max(T1)) %>%
+  arrange(Sample)
+
+## Max Temp ##
+box = 
+  ggplot(GRASS, aes(x = Species, y = T1, fill = Species)) +
+  geom_boxplot(alpha = 0.8) +
+  geom_jitter(size=3, alpha = 0.5, color="black", width = 0.25) +
+  #scale_fill_manual(values=c("#FF3399", "#117733", "#3366FF")) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        text=element_text(size=16,  family = "Roboto Mono"))+
+  theme_classic() 
+box
+
+ggsave("Figures/Box_MaxTemp.png", 
+       width = 10, height = 7)
+
+# Test for Significance across years#
+anova = aov(Mass_Loss ~ Species, data = GRASS)
+summary(anova)
+tukey.one.way<-TukeyHSD(anova)
+tukey.one.way
+
+
