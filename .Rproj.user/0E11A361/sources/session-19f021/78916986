@@ -1,0 +1,28 @@
+{
+    "id": "78916986",
+    "path": null,
+    "project_path": null,
+    "type": "object_explorer",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1700598485078.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "id": "d476a6c03b3e45628eb19ec1648b9ee8",
+        "name": "GRASS",
+        "title": "GRASS",
+        "language": "R",
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 2531906049332683555,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1700598485078,
+    "read_only": false,
+    "read_only_alternatives": []
+}

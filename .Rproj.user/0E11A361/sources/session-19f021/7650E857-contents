@@ -33,7 +33,7 @@ GRASS = read.csv("Data/Flammability Project - Temp.csv")
 str(GRASS)
 summary(GRASS)
 
-GRASS$T1 <- gsub("°C", "", GRASS$T1)
+GRASS <- gsub("°C", "", GRASS)
 GRASS <- strsplit(x, "~")
 GRASS <- sapply(x, as.numeric)
 t(x)
