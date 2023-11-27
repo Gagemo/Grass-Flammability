@@ -46,6 +46,7 @@ MxT2 <- GRASS %>%
   arrange(Sample, Species)
 
 ## Max Temp1 ##
+
 boxT1 = 
   ggplot(MxT1, aes(x = Species, y = MaxTemp, fill = Species)) +
   geom_boxplot(alpha = 0.8) +
@@ -70,6 +71,7 @@ tukey.one.way<-TukeyHSD(anova)
 tukey.one.way
 
 ## Max Temp2 ##
+
 boxT2 = 
   ggplot(MxT2, aes(x = Species, y = MaxTemp, fill = Species)) +
   geom_boxplot(alpha = 0.8) +
