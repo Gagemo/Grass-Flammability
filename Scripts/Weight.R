@@ -48,7 +48,6 @@ box =
         panel.background = element_blank(),
         plot.title = element_text(hjust = 0.5), legend.position="none",
         text=element_text(size=16)) +
-  coord_flip() +
   labs(y = "Mass Loss (g)", x = "")
 box
 
@@ -60,4 +59,12 @@ anova = aov(Mass_Loss ~ Species, data = GRASS)
 summary(anova)
 tukey.one.way<-TukeyHSD(anova)
 tukey.one.way
+
+cv <- GRASS %>% group_by(Species) %>% summarise(sd=sd(Mass_Loss, na.rm=T),
+                                               mean=mean(Mass_Loss, na.rm=T))
+cv$CV <- cv$sd/cv$mean
+mean(cv$CV)
+
+sd(GRASS$Mass_Loss)/mean(GRASS$Mass_Loss)
+
 
