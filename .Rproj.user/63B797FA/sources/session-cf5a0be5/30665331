@@ -1,0 +1,26 @@
+{
+    "id": "30665331",
+    "path": "~/GitHub/Grass-Flammability/Scripts/Temp.R",
+    "project_path": "Scripts/Temp.R",
+    "type": "r_source",
+    "hash": "3327434552",
+    "contents": "",
+    "dirty": false,
+    "created": 1722110415790.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "241,0",
+        "scrollLine": "224"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1722116771,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1722116771694,
+    "read_only": false,
+    "read_only_alternatives": []
+}

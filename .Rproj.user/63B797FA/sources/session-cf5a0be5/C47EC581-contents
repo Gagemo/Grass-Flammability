@@ -1,7 +1,7 @@
 ################################################################################
 ################################################################################
 #########################   Grass - Flammability   #############################
-#########################         Flame Height     #############################
+#########################      Flame Height        #############################
 #########################  University of Florida   #############################
 #########################     Gage LaPierre        #############################
 #########################          2023            #############################
@@ -87,7 +87,7 @@ box =
   ggplot(GRASS, aes(x = Species, y = Max_Height, fill = Species)) + 
   geom_boxplot(size = 0.5, color="black", show.legend = FALSE) +
   geom_point(shape=16, show.legend = FALSE, size =2)  +
-  geom_text(data = dt, aes(label = tukey.cld, y = 25), size=10, vjust = 0.5) +
+  geom_text(data = dt, aes(label = tukey.cld, y = 60), size=10, vjust = 0.5) +
   theme_bw() +
   theme(plot.title = element_blank(),
         axis.title.x = element_blank(),
@@ -114,6 +114,10 @@ box
 ggsave("Figures/Box_FlameHeight.png", 
        width = 10, height = 7)
 
+tmp <- tabular(Species ~ Max_Height* (mean+sd+std.error), data=GRASS)
+tmp
+
+write.csv.tabular(tmp, "Figures/Max_Hieght.csv")
 
 
 

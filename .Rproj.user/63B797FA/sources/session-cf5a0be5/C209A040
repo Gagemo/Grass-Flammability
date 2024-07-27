@@ -1,27 +1,27 @@
 {
-    "id": "C47EC581",
-    "path": "~/GitHub/Grass-Flammability/Scripts/Flame_Height.R",
-    "project_path": "Scripts/Flame_Height.R",
+    "id": "C209A040",
+    "path": "~/GitHub/Grass-Flammability/Scripts/Flame_Duration.R",
+    "project_path": "Scripts/Flame_Duration.R",
     "type": "r_source",
-    "hash": "1597360340",
+    "hash": "3353450005",
     "contents": "",
     "dirty": false,
-    "created": 1721973794007.0,
+    "created": 1722110444662.0,
     "source_on_save": false,
-    "relative_order": 2,
+    "relative_order": 4,
     "properties": {
         "tempName": "Untitled1",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "100,43",
-        "scrollLine": "96"
+        "cursorPosition": "127,0",
+        "scrollLine": "111"
     },
     "folds": "",
-    "lastKnownWriteTime": 1721976614,
+    "lastKnownWriteTime": 1722116573,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1721976614709,
+    "last_content_update": 1722116573079,
     "read_only": false,
     "read_only_alternatives": []
 }
