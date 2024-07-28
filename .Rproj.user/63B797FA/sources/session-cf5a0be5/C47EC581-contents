@@ -57,6 +57,18 @@ plot(model, 1)
 # Compute Levene's Test
 GRASS %>% levene_test(Max_Height ~ Species)
 
+# Test for Significance #
+anova_ = GRASS %>% anova_test(Max_Height ~ Species) %>% 
+  add_significance()
+anova_
+
+lm(formula = Max_Height ~ Species, GRASS)
+tukey_ <- GRASS %>% 
+  tukey_hsd(Max_Height ~ Species) %>% 
+  add_significance() %>% 
+  add_xy_position()
+tukey_
+
 ########################## Tukey Test - Multiple Comparisons ###################
 anova <- 
   aov(Max_Height ~ Species, data = GRASS) %>% add_significance()
@@ -87,14 +99,16 @@ box =
   ggplot(GRASS, aes(x = Species, y = Max_Height, fill = Species)) + 
   geom_boxplot(size = 0.5, color="black", show.legend = FALSE) +
   geom_point(shape=16, show.legend = FALSE, size =2)  +
-  geom_text(data = dt, aes(label = tukey.cld, y = 60), size=10, vjust = 0.5) +
-  theme_bw() +
+  geom_text(data = dt, aes(label = tukey.cld, y = 70), size=10, vjust = 0.5) +
+  labs(subtitle = get_test_label(anova_, detailed = TRUE),
+       caption = get_pwc_label(tukey_)) +
+  theme_classic() +
   theme(plot.title = element_blank(),
         axis.title.x = element_blank(),
         axis.text.x=element_text(size = 15),
         axis.title.y =  element_text(margin = unit(c(0, 5, 0, 0), "mm"),
-                                     size = 30, face="bold"),
-        axis.text.y = element_text(size=30, face="bold", color = "black"),
+                                     size = 20, face="bold"),
+        axis.text.y = element_text(size=20, face="bold", color = "black"),
         panel.background = element_rect(color=NA),
         plot.background = element_rect(color=NA),
         panel.grid.major = element_blank(),
@@ -102,9 +116,10 @@ box =
         legend.background = element_rect(color=NA),
         legend.box.background = element_rect(color=NA),
         strip.background = element_blank(),
-        legend.title = element_text(color = "black", size = 30, face="bold"),
-        legend.text = element_text(color = "black", size = 30),
-        strip.text = element_text(color = "black", size = 30, face="bold"),
+        legend.title = element_text(color = "black", size = 20, face="bold"),
+        legend.text = element_text(color = "black", size = 20),
+        strip.text = element_text(color = "black", size = 20, face="bold"),
+        plot.subtitle = element_text(size = 18),
         text = element_text(family = "sans")) + 
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +

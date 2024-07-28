@@ -97,24 +97,28 @@ box =
   labs(subtitle = get_test_label(anova_, detailed = TRUE),
        caption = get_pwc_label(tukey_)) +
   theme_classic() +
-  theme(panel.grid.major = element_blank(),
+  theme(plot.title = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x=element_text(size = 15),
+        axis.title.y =  element_text(margin = unit(c(0, 5, 0, 0), "mm"),
+                                     size = 20, face="bold"),
+        axis.text.y = element_text(size=20, face="bold", color = "black"),
+        panel.background = element_rect(color=NA),
+        plot.background = element_rect(color=NA),
+        panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold", colour = "black"),
-        text=element_text(size=16),
-        axis.title.x = element_text(size=15, face="bold", colour = "black"),    
-        axis.title.y = element_text(size=15, face="bold", colour = "black"),   
-        axis.text.x=element_text(size=15, face = "italic", color = "black"),
-        axis.text.y=element_text(size=15, face = "bold", color = "black"),
-        strip.text.x = 
-          element_text(size = 15, colour = "black", face = "italic"),
-        legend.position = "none") +
+        legend.background = element_rect(color=NA),
+        legend.box.background = element_rect(color=NA),
+        strip.background = element_blank(),
+        legend.title = element_text(color = "black", size = 20, face="bold"),
+        legend.text = element_text(color = "black", size = 20),
+        strip.text = element_text(color = "black", size =  , face="bold"),
+        plot.subtitle = element_text(size = 18),
+        text = element_text(family = "sans")) + 
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ylab("Mass loss (g)")
 box
-
 
 ggsave("Figures/Box_MassLoss.png", 
        width = 10, height = 7)
