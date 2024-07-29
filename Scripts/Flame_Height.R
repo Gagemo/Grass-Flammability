@@ -12,12 +12,11 @@
 
 rm(list=ls(all=TRUE))
 cat("\014") 
-#
+
 #########################     Installs Packages   ##############################
 
 list.of.packages <- c("tidyverse", "vegan", "agricolae", "tables", "plotrix",
-                      "ggpubr", "rstatix", "multcompView", "emmeans", "multcomp",
-                      "Hmisc")
+                      "ggpubr", "rstatix", "multcompView", "emmeans")
 new.packages <- list.of.packages[!(list.of.packages %in% 
                                      installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -31,9 +30,8 @@ library(tables)
 library(plotrix)
 library(ggpubr)
 library(rstatix)
-library(multcomp)
+library(multcompView)
 library(emmeans)
-library(Hmisc)
 
 ##########################     Read in Data  ###################################
 

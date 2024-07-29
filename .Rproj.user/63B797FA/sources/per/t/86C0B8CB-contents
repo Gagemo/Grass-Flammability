@@ -13,6 +13,14 @@
 rm(list=ls(all=TRUE))
 cat("\014") 
 
+#########################     Installs Packages   ##############################
+
+list.of.packages <- c("tidyverse", "vegan", "agricolae", "tables", "plotrix",
+                      "ggpubr", "rstatix", "multcompView", "emmeans")
+new.packages <- list.of.packages[!(list.of.packages %in% 
+                                     installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
 ##########################     Loads Packages     ##############################
 
 library(tidyverse)
@@ -23,6 +31,7 @@ library(plotrix)
 library(ggpubr)
 library(rstatix)
 library(multcompView)
+library(emmeans)
 
 ##########################     Read in Data  ###################################
 
@@ -88,7 +97,8 @@ anova <- aov(Mass_Loss ~ Species + FB, data = GRASS)
 posthoc_results <- emmeans(anova, pairwise ~ Species)
 
 # Generate compact letter displays for significance testing
-cld_results <- multcomp::cld(posthoc_results$emmeans, Letters = letters, adjust = "tukey")
+cld_results <- multcomp::cld(posthoc_results$emmeans, Letters = letters, 
+                             adjust = "bonferroni")
 
 # Convert cld_results to a data frame
 cld_df <- as.data.frame(cld_results)
@@ -100,7 +110,7 @@ box =
   ggplot(GRASS, aes(x = Species, y = Mass_Loss, fill = Species)) +
   geom_boxplot() +
   geom_text(data = cld_df, aes(x = Species, 
-                               label = .group, y = 65), size=10) +
+                               label = .group, y = 100), size=10) +
   geom_point(shape=16, show.legend = FALSE, size =2)  +
   labs(subtitle = get_test_label(anova_, detailed = TRUE)) +
   theme_classic() +
@@ -120,7 +130,7 @@ box =
         legend.position = "none") +
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ylab("Mass Loss (g)")
+  ylab("Mass loss (g)")
 box
 
 ggsave("Figures/Box_MassLoss.png", 

@@ -3,7 +3,7 @@
     "path": "~/GitHub/Grass-Flammability/Scripts/Weight.R",
     "project_path": "Scripts/Weight.R",
     "type": "r_source",
-    "hash": "627410773",
+    "hash": "1376862581",
     "contents": "",
     "dirty": false,
     "created": 1721973785572.0,
@@ -12,15 +12,15 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "132,0",
-        "scrollLine": "13"
+        "cursorPosition": "142,0",
+        "scrollLine": "2"
     },
     "folds": "",
-    "lastKnownWriteTime": 1722203715,
+    "lastKnownWriteTime": 1722230212,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1722203715200,
+    "last_content_update": 1722230212607,
     "read_only": false,
     "read_only_alternatives": []
 }

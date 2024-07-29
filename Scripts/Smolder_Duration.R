@@ -16,7 +16,7 @@ cat("\014")
 #########################     Installs Packages   ##############################
 
 list.of.packages <- c("tidyverse", "vegan", "agricolae", "tables", "plotrix",
-                      "ggpubr", "rstatix", "multcompView")
+                      "ggpubr", "rstatix", "multcompView", "emmeans")
 new.packages <- list.of.packages[!(list.of.packages %in% 
                                      installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -31,8 +31,8 @@ library(plotrix)
 library(ggpubr)
 library(rstatix)
 library(multcompView)
+library(emmeans)
 
-##########################     Read in Data  ###################################
 ##########################     Read in Data  ###################################
 
 GRASS = read.csv("Data/Flammability Project - Time.csv")
@@ -109,7 +109,7 @@ box =
   ggplot(GRASS, aes(x = Species, y = Smld_Total, fill = Species)) +
   geom_boxplot() +
   geom_text(data = cld_df, aes(x = Species, 
-                               label = .group, y = 65), size=10) +
+                               label = .group, y = 210), size=10) +
   geom_point(shape=16, show.legend = FALSE, size =2)  +
   labs(subtitle = get_test_label(anova_, detailed = TRUE)) +
   theme_classic() +

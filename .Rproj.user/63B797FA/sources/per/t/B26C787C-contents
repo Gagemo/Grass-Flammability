@@ -1,7 +1,7 @@
 ################################################################################
 ################################################################################
 #########################   Grass - Flammability   #############################
-#########################         Mass Loss        #############################
+#########################      Fuel Bed Height     #############################
 #########################  University of Florida   #############################
 #########################     Gage LaPierre        #############################
 #########################          2023            #############################
@@ -35,21 +35,20 @@ library(emmeans)
 
 ##########################     Read in Data  ###################################
 
-GRASS = read.csv("Data/Flammability Project - Weight.csv")
+GRASS = read.csv("Data/Flammability Project - Time.csv")
 
 str(GRASS)
 summary(GRASS)
 
 GRASS$Species = as.character(GRASS$Species)
-GRASS$Mass_Loss = as.numeric(GRASS$Mass_Loss)
 GRASS$FB = as.numeric(GRASS$FB)
 
 GRASS$Species = factor(GRASS$Species)
 
-GRASS %>% anova_test(Mass_Loss ~ Species*FB)
+GRASS %>% anova_test(FB ~ Species)
 
 # Check Assumptions #
-model  <- lm(Mass_Loss ~ FB + Species, data = GRASS)
+model  <- lm(FB ~ Species, data = GRASS)
 # Inspect the model diagnostic metrics
 model.metrics <- augment(model)
 head(model.metrics, 3)
@@ -67,38 +66,24 @@ model.metrics %>%
   as.data.frame()
 
 # Test for Significance #
-anova_ = GRASS %>% anova_test(Mass_Loss ~ FB + Species) %>% 
+anova_ = GRASS %>% anova_test(FB ~ Species) %>% 
   add_significance()
-anova_
+summary(anova_)
 
-pwc <- GRASS %>% 
-  emmeans_test(
-    Mass_Loss ~ Species, covariate = FB,
-    p.adjust.method = "bonferroni"
-  )
-pwc
-
-MEANS = get_emmeans(pwc)
-
-# Visualization: line plots with p-values
-pwc <- pwc %>% add_xy_position(x = "Species", fun = "mean_se")
-ggline(get_emmeans(pwc), x = "Species", y = "emmean") +
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) + 
-  stat_pvalue_manual(pwc, hide.ns = TRUE, tip.length = FALSE) +
-  labs(
-    subtitle = get_test_label(anova_, detailed = TRUE),
-    caption = get_pwc_label(pwc)
-  )
+tukey_ <- GRASS %>% 
+  tukey_hsd(FB ~ Species) %>% 
+  add_significance() %>% 
+  add_xy_position()
+tukey_
 
 # Fit the ANOVA model
-anova <- aov(Mass_Loss ~ Species + FB, data = GRASS)
+anova <- aov(FB ~ Species, data = GRASS)
 
 # Perform post-hoc tests on the Species factor
 posthoc_results <- emmeans(anova, pairwise ~ Species)
 
 # Generate compact letter displays for significance testing
-cld_results <- multcomp::cld(posthoc_results$emmeans, Letters = letters, 
-                             adjust = "bonferroni")
+cld_results <- multcomp::cld(posthoc_results$emmeans, Letters = letters, adjust = "tukey")
 
 # Convert cld_results to a data frame
 cld_df <- as.data.frame(cld_results)
@@ -107,10 +92,10 @@ cld_df <- as.data.frame(cld_results)
 fuel_data <- merge(GRASS, cld_df, by = "Species")
 
 box = 
-  ggplot(GRASS, aes(x = Species, y = Mass_Loss, fill = Species)) +
+  ggplot(GRASS, aes(x = Species, y = FB, fill = Species)) +
   geom_boxplot() +
   geom_text(data = cld_df, aes(x = Species, 
-                               label = .group, y = 100), size=10) +
+                               label = .group, y = 10), size=10) +
   geom_point(shape=16, show.legend = FALSE, size =2)  +
   labs(subtitle = get_test_label(anova_, detailed = TRUE)) +
   theme_classic() +
@@ -130,13 +115,13 @@ box =
         legend.position = "none") +
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ylab("Mass loss (g)")
+  ylab("Fuel bed height (cm)")
 box
 
-ggsave("Figures/Box_MassLoss.png", 
+ggsave("Figures/Box_FuelBed.png", 
        width = 10, height = 7)
 
-# Create the table
-print(MEANS)
-MEANS = as.data.frame(MEANS)
-write.csv(MEANS, "Figures/MassLoss.csv", row.names = FALSE)
+tmp <- tabular(Species ~ FB * (mean+sd+std.error), data=GRASS)
+tmp
+
+write.csv.tabular(tmp, "Figures/FB.csv")

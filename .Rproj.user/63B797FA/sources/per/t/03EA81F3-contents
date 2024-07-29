@@ -79,11 +79,11 @@ ggplot(pca_scores, aes(x = PC1, y = PC2, color = Species)) +
         axis.text.x=element_text(face = "bold", color = "black"),
         axis.text.y=element_text(face = "bold", color = "black"),
         strip.text.x = element_text(size = 15, colour = "black", face = "bold"),
-        legend.text = element_text(face = "italic")) +  
+        legend.text = element_text(size = 15, face = "italic")) +  
   theme(legend.position = "bottom")
 
 ggsave("Figures/Box_PCA.png", 
-       width = 10, height = 7)
+       width = 12, height = 7)
 
 ggplot(pca_scores, aes(x = PC1, y = PC2, color = Status)) +
   geom_point(size = 4, alpha = 0.7) +
