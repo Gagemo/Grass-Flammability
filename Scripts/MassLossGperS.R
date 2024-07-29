@@ -1,7 +1,7 @@
 ################################################################################
 ################################################################################
-#########################   Grass - Flammability   #############################
-#########################      Smolder Duration    #############################
+#########################   data - Flammability    #############################
+#########################     Mass Loss g/S        #############################
 #########################  University of Florida   #############################
 #########################     Gage LaPierre        #############################
 #########################          2023            #############################
@@ -12,11 +12,11 @@
 
 rm(list=ls(all=TRUE))
 cat("\014") 
-#
+
 #########################     Installs Packages   ##############################
 
 list.of.packages <- c("tidyverse", "vegan", "agricolae", "tables", "plotrix",
-                      "ggpubr", "rstatix", "multcompView", "emmeans")
+                      "ggpubr", "rstatix", "multcompView", "emmeans", "multcomp")
 new.packages <- list.of.packages[!(list.of.packages %in% 
                                      installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -31,25 +31,27 @@ library(plotrix)
 library(ggpubr)
 library(rstatix)
 library(multcompView)
+library(multcomp)
 library(emmeans)
 
 ##########################     Read in Data  ###################################
 
-GRASS = read.csv("Data/Flammability Project - Time.csv")
+data = read.csv("Data/Flammability Project - Weight.csv")
 
-str(GRASS)
-summary(GRASS)
+str(data)
+summary(data)
 
-GRASS$Species = as.character(GRASS$Species)
-GRASS$Smld_Total = as.numeric(GRASS$Smld_Total)
-GRASS$FB = as.numeric(GRASS$FB)
+data$Species = as.character(data$Species)
+data$Mass_Rate = as.numeric(data$Mass_Rate)
+data$FB = as.numeric(data$FB)
 
-GRASS$Species = factor(GRASS$Species)
+data$Species = factor(data$Species)
 
-GRASS %>% anova_test(Smld_Total ~ Species*FB)
+data %>% anova_test(Mass_Rate ~ FB + Species)
+cor.test(data$Mass_Rate, data$FB)
 
 # Check Assumptions #
-model  <- lm(Smld_Total ~ FB + Species, data = GRASS)
+model  <- lm(Mass_Rate ~ FB + Species, data = data)
 # Inspect the model diagnostic metrics
 model.metrics <- augment(model)
 head(model.metrics, 3)
@@ -67,13 +69,13 @@ model.metrics %>%
   as.data.frame()
 
 # Test for Significance #
-anova_ = GRASS %>% anova_test(Smld_Total ~ FB + Species) %>% 
+anova_ = data %>% anova_test(Mass_Rate ~ FB + Species) %>% 
   add_significance()
 anova_
 
-pwc <- GRASS %>% 
+pwc <- data %>% 
   emmeans_test(
-    Smld_Total ~ Species, covariate = FB,
+    Mass_Rate ~ Species, covariate = FB,
     p.adjust.method = "bonferroni"
   )
 pwc
@@ -91,53 +93,54 @@ ggline(get_emmeans(pwc), x = "Species", y = "emmean") +
   )
 
 # Fit the ANOVA model
-anova <- aov(Smld_Total ~ Species + FB, data = GRASS)
+anova <- aov(Mass_Rate ~ FB + Species, data = data)
 
 # Perform post-hoc tests on the Species factor
 posthoc_results <- emmeans(anova, pairwise ~ Species)
 
 # Generate compact letter displays for significance testing
-cld_results <- multcomp::cld(posthoc_results$emmeans, Letters = letters, adjust = "tukey")
+cld_results <- multcomp::cld(posthoc_results$emmeans, Letters = letters, 
+                             adjust = "bonferroni")
 
 # Convert cld_results to a data frame
 cld_df <- as.data.frame(cld_results)
 
 # Merge with the original data
-fuel_data <- merge(GRASS, cld_df, by = "Species")
+fuel_data <- merge(data, cld_df, by = "Species")
 
 box = 
-  ggplot(GRASS, aes(x = Species, y = Smld_Total, fill = Species)) +
+  ggplot(data, aes(x = Species, y = Mass_Rate, fill = Species)) +
   geom_boxplot() +
   geom_text(data = cld_df, aes(x = Species, 
-                               label = .group, y = 210), size=10) +
+                               label = .group, y = 1.35), size=10) +
   geom_point(shape=16, show.legend = FALSE, size =2)  +
   labs(subtitle = get_test_label(anova_, detailed = TRUE)) +
   theme_classic() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold", colour = "black"),
-        text=element_text(size=16),
-        axis.title.x = element_text(size = 20, face="bold", colour = "black"),    
-        axis.title.y = element_text(size = 20, face="bold", colour = "black"),   
-        axis.text.x=element_text(size=18, face = "italic", color = "black"),
-        axis.text.y=element_text(size = 18, face = "bold", color = "black"),
-        strip.text = element_text(color = "black", size = 20, face="bold"),
-        plot.subtitle = element_text(size = 18),
-        element_text(size = 18, colour = "black", face = "italic"),
-        legend.position = "none") +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_blank(),
+    plot.title = element_text(hjust = 0.5, face = "bold", colour = "black"),
+    text = element_text(size = 16),
+    axis.title.x = element_text(size = 20, face = "bold", colour = "black"),
+    axis.title.y = element_text(size = 20, face = "bold", colour = "black"),
+    axis.text.x = element_text(size = 18, face = "italic", color = "black", angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 18, face = "bold", color = "black"),
+    strip.text = element_text(color = "black", size = 20, face = "bold"),
+    plot.subtitle = element_text(size = 18),
+    axis.ticks = element_line(size = 1.25),  # Adjusted size here
+    legend.position = "none"
+  ) +
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ylab("Smolder Duration (s)")
+  ylab("Mass rate (g/s)")
 box
 
-ggsave("Figures/Box_SmolderDuration.png", 
+ggsave("Figures/Box_MassLoss_Rate.png", 
        width = 10, height = 7)
 
 # Create the table
 print(MEANS)
 MEANS = as.data.frame(MEANS)
-write.csv(MEANS, "Figures/SmolderDuration.csv", row.names = FALSE)
-
-
+write.csv(MEANS, "Figures/MassLoss_rate.csv", row.names = FALSE)

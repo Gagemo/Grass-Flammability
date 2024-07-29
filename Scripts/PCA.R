@@ -41,9 +41,9 @@ data <- cbind(TIME, LOSS)
 data$FB = as.numeric(data$FB)
 data <- data[ , !duplicated(colnames(data))]
 data <- data %>%
-  dplyr::select(Flame_Total, Smld_Total, Max_Height, Mass_Loss)
+  dplyr::select(Flame_Total, Smld_Total, Max_Height, Mass_Loss, Mass_Rate)
 colnames(data) <- c("Flame Duration", "Smolder Time", 
-                    "Flame Height", "Mass Loss")
+                    "Flame Height", "Mass Loss", "Mass Rate")
 
 data$Species <- TIME$Species
 data$Status <- TIME$Ruderal
@@ -59,12 +59,12 @@ pca_scores$Status <- data$Status    # Add status information to scores
 loadings <- as.data.frame(vegan::scores(pca, display = "species"))
 loadings$Flammability <- rownames(loadings)
 
-ggplot(pca_scores, aes(x = PC1, y = PC2, color = Species)) +
-  geom_point(size = 4, alpha = 0.7) +
+ggplot(pca_scores, aes(x = PC1, y = PC2)) +
+  geom_point(aes(fill = Species), shape = 21, size = 6) +
   geom_segment(data = loadings, aes(x = 0, y = 0, xend = PC1 * 0.5, yend = PC2 * 0.5),
                arrow = arrow(length = unit(0.3, "cm")), color = "black") +
   geom_text(data = loadings, aes(x = PC1 * 0.5, y = PC2 * 0.5, label = Flammability),
-            color = "black", vjust = -0.5, hjust = 0.5, size = 6) +
+            color = "black", vjust = -0.5, hjust = 0.5, size = 7) +
   xlab(paste("PC1 (", round(summary(pca)$cont$importance[2, 1] * 100, 1), "%)", sep = "")) +
   ylab(paste("PC2 (", round(summary(pca)$cont$importance[2, 2] * 100, 1), "%)", sep = "")) +
   theme_classic() +
@@ -76,14 +76,14 @@ ggplot(pca_scores, aes(x = PC1, y = PC2, color = Species)) +
         text=element_text(size=18),
         axis.title.x = element_text(face="bold", colour = "black"),    
         axis.title.y = element_text(face="bold", colour = "black"),   
-        axis.text.x=element_text(face = "bold", color = "black"),
-        axis.text.y=element_text(face = "bold", color = "black"),
-        strip.text.x = element_text(size = 15, colour = "black", face = "bold"),
-        legend.text = element_text(size = 15, face = "italic")) +  
+        axis.text.x=element_text(size = 16, face = "bold", color = "black"),
+        axis.text.y=element_text(size = 16, face = "bold", color = "black"),
+        strip.text.x = element_text(size = 18, colour = "black", face = "bold"),
+        legend.text = element_text(size = 18, face = "italic")) +  
   theme(legend.position = "bottom")
 
 ggsave("Figures/Box_PCA.png", 
-       width = 12, height = 7)
+       width = 19, height = 12)
 
 ggplot(pca_scores, aes(x = PC1, y = PC2, color = Status)) +
   geom_point(size = 4, alpha = 0.7) +

@@ -1,7 +1,7 @@
 ################################################################################
 ################################################################################
 #########################   data - Flammability   #############################
-#########################      Flame Duration      #############################
+#########################      Fuel Bed  Height    #############################
 #########################  University of Florida   #############################
 #########################     Gage LaPierre        #############################
 #########################          2023            #############################
@@ -41,16 +41,15 @@ str(data)
 summary(data)
 
 data$Species = as.character(data$Species)
-data$Flame_Total = as.numeric(data$Flame_Total)
 data$FB = as.numeric(data$FB)
 
 data$Species = factor(data$Species)
+data <- data[-c(52), ]
 
-data %>% anova_test(Flame_Total ~ FB + Species)
-cor.test(data$Flame_Total, data$FB)
+data %>% anova_test(FB ~ Species)
 
 # Check Assumptions #
-model  <- lm(Flame_Total ~ FB + Species, data = data)
+model  <- lm(FB ~ Species, data = data)
 # Inspect the model diagnostic metrics
 model.metrics <- augment(model)
 head(model.metrics, 3)
@@ -62,6 +61,7 @@ ggqqplot(residuals(model))
 shapiro_test(residuals(model))
 plot(model, 1)
 
+# Compute Shapiro-Wilk test of normality
 model.metrics %>% levene_test(.resid ~ Species)
 plot(model, 1)
 
@@ -71,50 +71,51 @@ model.metrics %>%
   as.data.frame()
 
 # Test for Significance #
-anova_ = data %>% anova_test(Flame_Total ~ FB + Species) %>% 
+anova_ = data %>% anova_test(FB ~ Species) %>% 
   add_significance()
 anova_
 
-pwc <- data %>% 
-  emmeans_test(
-    Flame_Total ~ Species, covariate = FB,
-    p.adjust.method = "bonferroni"
-  )
-pwc
+anova <- 
+  aov(FB ~ Species, data = data) %>% add_significance()
+summary(anova)
+capture.output(summary(anova), file="Figures/FuelBed.doc")
 
-MEANS = get_emmeans(pwc)
+########################## Tukey Test - Multiple Comparisons ###################
 
-# Visualization: line plots with p-values
-pwc <- pwc %>% add_xy_position(x = "Species", fun = "mean_se")
-ggline(get_emmeans(pwc), x = "Species", y = "emmean") +
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) + 
-  stat_pvalue_manual(pwc, hide.ns = TRUE, tip.length = FALSE) +
-  labs(
-    subtitle = get_test_label(anova_, detailed = TRUE),
-    caption = get_pwc_label(pwc)
-  )
+tukey <-TukeyHSD(anova) 
+tukey
 
-# Fit the ANOVA model
-anova <- aov(Flame_Total ~ FB + Species, data = data)
+tukey_ <- data %>% 
+  tukey_hsd(FB ~ Species) %>% 
+  add_significance() %>% 
+  add_xy_position()
+tukey_
 
-# Perform post-hoc tests on the Species factor
-posthoc_results <- emmeans(anova, pairwise ~ Species)
+HSD = HSD.test(anova, trt = c("Species"))
+HSD
 
-# Generate compact letter displays for significance testing
-cld_results <- multcomp::cld(posthoc_results$emmeans, Letters = letters, adjust = "tukey")
+## SIGNIFICANCE: SUGARCANE: BX VS A1 --- INDIAN: BX VS A1 ##
+## GROWTH HEIGHT WAS SIGNIFICANTLY AFFECTED BY SOIL   ##
 
-# Convert cld_results to a data frame
-cld_df <- as.data.frame(cld_results)
+tukey.cld <- multcompLetters4(anova, tukey)
+print(tukey.cld)
 
-# Merge with the original data
-fuel_data <- merge(data, cld_df, by = "Species")
+dt <- data %>% 
+  group_by(Species) %>%
+  summarise(w=mean(exp(FB)), 
+            sd = sd(exp(FB)) / sqrt(n())) %>%
+  arrange(desc(w)) %>% 
+  ungroup() 
 
-box = 
-  ggplot(data, aes(x = Species, y = Flame_Total, fill = Species)) +
+# extracting the compact letter display and adding to the Tk table
+cld2 <- data.frame(letters = tukey.cld$`Species`$Letters)
+dt$tukey.cld <- cld2$letters
+
+fb_box = 
+  ggplot(data, aes(x = Species, y = FB, fill = Species)) + 
   geom_boxplot() +
-  geom_text(data = cld_df, aes(x = Species, label = .group, y = 180), size = 10) +
-  geom_point(shape = 16, show.legend = FALSE, size = 2) +
-  labs(subtitle = get_test_label(anova_, detailed = TRUE)) +
+  geom_point(shape=16, show.legend = FALSE, size =2) +
+  geom_text(data = dt, aes(label = tukey.cld, y = 20), size=10, vjust = 0.5) +
   theme_classic() +
   theme(
     panel.grid.major = element_blank(),
@@ -130,19 +131,17 @@ box =
     strip.text = element_text(color = "black", size = 20, face = "bold"),
     plot.subtitle = element_text(size = 18),
     axis.ticks = element_line(size = 1.25),  # Adjusted size here
-    legend.position = "none") +
+    legend.position = "none"
+  ) +
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ylab("Flame duration (s)")
-box
+  ylab("Height (cm)")
+fb_box
 
-ggsave("Figures/Box_FlameDuration.png", 
+ggsave("Figures/FB_Height.png", 
        width = 10, height = 7)
 
-# Create the table
-print(MEANS)
-MEANS = as.data.frame(MEANS)
-write.csv(MEANS, "Figures/FlameDuration.csv", row.names = FALSE)
+tmp <- tabular(Species ~ FB * (mean+sd+std.error), data=data)
+tmp
 
-
-
+write.csv.tabular(tmp, "Figures/FB.csv")
