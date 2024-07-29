@@ -1,0 +1,27 @@
+{
+    "id": "6C072CFC",
+    "path": "~/GitHub/Grass-Flammability/Scripts/FuelBed.R",
+    "project_path": "Scripts/FuelBed.R",
+    "type": "r_source",
+    "hash": "1826846497",
+    "contents": "",
+    "dirty": false,
+    "created": 1722274833992.0,
+    "source_on_save": false,
+    "relative_order": 8,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "147,0",
+        "scrollLine": "125"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1722282208,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1722282208636,
+    "read_only": false,
+    "read_only_alternatives": []
+}

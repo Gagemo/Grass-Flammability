@@ -1,0 +1,26 @@
+{
+    "id": "9B3A2421",
+    "path": "~/GitHub/Grass-Flammability/Scripts/Smolder_Duration.R",
+    "project_path": "Scripts/Smolder_Duration.R",
+    "type": "r_source",
+    "hash": "4179222071",
+    "contents": "",
+    "dirty": false,
+    "created": 1722270661348.0,
+    "source_on_save": false,
+    "relative_order": 3,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "145,0",
+        "scrollLine": "120"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1722286658,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1722286658602,
+    "read_only": false,
+    "read_only_alternatives": []
+}
