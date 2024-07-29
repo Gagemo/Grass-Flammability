@@ -1,7 +1,7 @@
 ################################################################################
 ################################################################################
 #########################   Grass - Flammability   #############################
-#########################      Flame Duration      #############################
+#########################      Flame Height        #############################
 #########################  University of Florida   #############################
 #########################     Gage LaPierre        #############################
 #########################          2023            #############################
@@ -16,7 +16,7 @@ cat("\014")
 #########################     Installs Packages   ##############################
 
 list.of.packages <- c("tidyverse", "vegan", "agricolae", "tables", "plotrix",
-                      "ggpubr", "rstatix", "multcompView", "emmeans", "multcomp")
+                      "ggpubr", "rstatix", "multcompView", "emmeans")
 new.packages <- list.of.packages[!(list.of.packages %in% 
                                      installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -32,7 +32,6 @@ library(ggpubr)
 library(rstatix)
 library(multcompView)
 library(emmeans)
-library(multcomp)
 
 ##########################     Read in Data  ###################################
 
@@ -42,15 +41,15 @@ str(GRASS)
 summary(GRASS)
 
 GRASS$Species = as.character(GRASS$Species)
-GRASS$Flame_Total = as.numeric(GRASS$Flame_Total)
+GRASS$Max_Height = as.numeric(GRASS$Max_Height)
 GRASS$FB = as.numeric(GRASS$FB)
 
 GRASS$Species = factor(GRASS$Species)
 
-GRASS %>% anova_test(Flame_Total ~ Species*FB)
+GRASS %>% anova_test(Max_Height ~ Species*FB)
 
 # Check Assumptions #
-model  <- lm(Flame_Total ~ FB + Species, data = GRASS)
+model  <- lm(Max_Height ~ FB + Species, data = GRASS)
 # Inspect the model diagnostic metrics
 model.metrics <- augment(model)
 head(model.metrics, 3)
@@ -68,13 +67,13 @@ model.metrics %>%
   as.data.frame()
 
 # Test for Significance #
-anova_ = GRASS %>% anova_test(Flame_Total ~ FB + Species) %>% 
+anova_ = GRASS %>% anova_test(Max_Height ~ FB + Species) %>% 
   add_significance()
 anova_
 
 pwc <- GRASS %>% 
   emmeans_test(
-    Flame_Total ~ Species, covariate = FB,
+    Max_Height ~ Species, covariate = FB,
     p.adjust.method = "bonferroni"
   )
 pwc
@@ -92,7 +91,7 @@ ggline(get_emmeans(pwc), x = "Species", y = "emmean") +
   )
 
 # Fit the ANOVA model
-anova <- aov(Flame_Total ~ Species + FB, data = GRASS)
+anova <- aov(Max_Height ~ Species + FB, data = GRASS)
 
 # Perform post-hoc tests on the Species factor
 posthoc_results <- emmeans(anova, pairwise ~ Species)
@@ -107,10 +106,10 @@ cld_df <- as.data.frame(cld_results)
 fuel_data <- merge(GRASS, cld_df, by = "Species")
 
 box = 
-  ggplot(GRASS, aes(x = Species, y = Flame_Total, fill = Species)) +
+  ggplot(GRASS, aes(x = Species, y = Max_Height, fill = Species)) +
   geom_boxplot() +
   geom_text(data = cld_df, aes(x = Species, 
-                               label = .group, y = 165), size=10) +
+                               label = .group, y = 65), size=10) +
   geom_point(shape=16, show.legend = FALSE, size =2)  +
   labs(subtitle = get_test_label(anova_, detailed = TRUE)) +
   theme_classic() +
@@ -130,16 +129,14 @@ box =
         legend.position = "none") +
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ylab("Flame duration (s)")
+  ylab("Max height (cm)")
 box
 
-ggsave("Figures/Box_FlameDuration.png", 
+ggsave("Figures/Box_FlameHeight.png", 
        width = 10, height = 7)
 
 # Create the table
 print(MEANS)
 MEANS = as.data.frame(MEANS)
-write.csv(MEANS, "Figures/FlameDuration.csv", row.names = FALSE)
-
-
+write.csv(MEANS, "Figures/FlameHeight.csv", row.names = FALSE)
 

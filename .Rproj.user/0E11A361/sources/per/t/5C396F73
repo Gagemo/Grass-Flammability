@@ -1,0 +1,26 @@
+{
+    "id": "5C396F73",
+    "path": "~/GitHub/Grass-Flammability/Scripts/Flame_Duration.R",
+    "project_path": "Scripts/Flame_Duration.R",
+    "type": "r_source",
+    "hash": "1508805188",
+    "contents": "",
+    "dirty": false,
+    "created": 1722270644379.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "102,0",
+        "scrollLine": "83"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1722271317,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1722271318001,
+    "read_only": false,
+    "read_only_alternatives": []
+}
