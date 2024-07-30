@@ -16,7 +16,9 @@ cat("\014")
 #########################     Installs Packages   ##############################
 
 list.of.packages <- c("tidyverse", "vegan", "agricolae", "tables", "plotrix",
-                      "ggpubr", "rstatix", "multcompView")
+                      "ggpubr", "rstatix", "multcompView", "factoextra",
+                      "FactoMineR")
+
 new.packages <- list.of.packages[!(list.of.packages %in% 
                                      installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -31,6 +33,8 @@ library(plotrix)
 library(ggpubr)
 library(rstatix)
 library(multcompView)
+library(factoextra)
+library(FactoMineR)
 
 ##########################     Read in Data  ###################################
 
@@ -113,3 +117,13 @@ ggsave("Figures/Box_PCA_ruderal.png",
        width = 10, height = 7)
 
 write.table(loadings, file = "Figures/loadings.csv", sep=",")
+
+res.pca <- data %>% dplyr::select(-Species, -Status) %>% PCA(graph = FALSE)
+
+var <- get_pca_var(res.pca)
+var
+
+# Contributions of variables to PC1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 10)
+# Contributions of variables to PC2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 10)

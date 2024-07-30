@@ -1,6 +1,6 @@
 ################################################################################
 ################################################################################
-#########################   Grass - Flammability   #############################
+#########################   Data - Flammability   #############################
 #########################      Flame Height        #############################
 #########################  University of Florida   #############################
 #########################     Gage LaPierre        #############################
@@ -12,7 +12,7 @@
 
 rm(list=ls(all=TRUE))
 cat("\014") 
-
+#
 #########################     Installs Packages   ##############################
 
 list.of.packages <- c("tidyverse", "vegan", "agricolae", "tables", "plotrix",
@@ -35,21 +35,22 @@ library(emmeans)
 
 ##########################     Read in Data  ###################################
 
-GRASS = read.csv("Data/Flammability Project - Time.csv")
+Data = read.csv("Data/Flammability Project - Time.csv")
 
-str(GRASS)
-summary(GRASS)
+str(Data)
+summary(Data)
 
-GRASS$Species = as.character(GRASS$Species)
-GRASS$Max_Height = as.numeric(GRASS$Max_Height)
-GRASS$FB = as.numeric(GRASS$FB)
+Data$Species = as.character(Data$Species)
+Data$Max_Height = as.numeric(Data$Max_Height)
+Data$FB = as.numeric(Data$FB)
 
-GRASS$Species = factor(GRASS$Species)
+Data$Species = factor(Data$Species)
 
-GRASS %>% anova_test(Max_Height ~ Species*FB)
+Data %>% anova_test(Max_Height ~ FB + Species)
+cor.test(Data$Max_Height, Data$FB)
 
 # Check Assumptions #
-model  <- lm(Max_Height ~ FB + Species, data = GRASS)
+model  <- lm(Max_Height ~ FB + Species, data = Data)
 # Inspect the model diagnostic metrics
 model.metrics <- augment(model)
 head(model.metrics, 3)
@@ -58,6 +59,9 @@ head(model.metrics, 3)
 ggqqplot(residuals(model))
 
 # Compute Shapiro-Wilk test of normality
+shapiro_test(residuals(model))
+plot(model, 1)
+
 model.metrics %>% levene_test(.resid ~ Species)
 plot(model, 1)
 
@@ -67,11 +71,11 @@ model.metrics %>%
   as.data.frame()
 
 # Test for Significance #
-anova_ = GRASS %>% anova_test(Max_Height ~ FB + Species) %>% 
+anova_ = Data %>% anova_test(Max_Height ~ FB + Species) %>% 
   add_significance()
 anova_
 
-pwc <- GRASS %>% 
+pwc <- Data %>% 
   emmeans_test(
     Max_Height ~ Species, covariate = FB,
     p.adjust.method = "bonferroni"
@@ -91,42 +95,44 @@ ggline(get_emmeans(pwc), x = "Species", y = "emmean") +
   )
 
 # Fit the ANOVA model
-anova <- aov(Max_Height ~ Species + FB, data = GRASS)
+anova <- aov(Max_Height ~ FB + Species, data = Data)
 
 # Perform post-hoc tests on the Species factor
 posthoc_results <- emmeans(anova, pairwise ~ Species)
 
 # Generate compact letter displays for significance testing
 cld_results <- multcomp::cld(posthoc_results$emmeans, Letters = letters, adjust = "tukey")
+cld_results
 
 # Convert cld_results to a data frame
 cld_df <- as.data.frame(cld_results)
 
 # Merge with the original data
-fuel_data <- merge(GRASS, cld_df, by = "Species")
+fuel_data <- merge(Data, cld_df, by = "Species")
 
 box = 
-  ggplot(GRASS, aes(x = Species, y = Max_Height, fill = Species)) +
+  ggplot(Data, aes(x = Species, y = Max_Height, fill = Species)) +
   geom_boxplot() +
-  geom_text(data = cld_df, aes(x = Species, 
-                               label = .group, y = 65), size=10) +
-  geom_point(shape=16, show.legend = FALSE, size =2)  +
+  geom_text(data = cld_df, aes(x = Species, label = .group, y = 60), size = 10) +
+  geom_point(shape = 16, show.legend = FALSE, size = 2) +
   labs(subtitle = get_test_label(anova_, detailed = TRUE)) +
   theme_classic() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold", colour = "black"),
-        text=element_text(size=16),
-        axis.title.x = element_text(size = 20, face="bold", colour = "black"),    
-        axis.title.y = element_text(size = 20, face="bold", colour = "black"),   
-        axis.text.x=element_text(size=18, face = "italic", color = "black"),
-        axis.text.y=element_text(size = 18, face = "bold", color = "black"),
-        strip.text = element_text(color = "black", size = 20, face="bold"),
-        plot.subtitle = element_text(size = 18),
-        element_text(size = 18, colour = "black", face = "italic"),
-        legend.position = "none") +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_blank(),
+    plot.title = element_text(hjust = 0.5, face = "bold", colour = "black"),
+    text = element_text(size = 16),
+    axis.title.x = element_text(size = 20, face = "bold", colour = "black"),
+    axis.title.y = element_text(size = 20, face = "bold", colour = "black"),
+    axis.text.x = element_text(size = 18, face = "italic", color = "black", angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 18, face = "bold", color = "black"),
+    strip.text = element_text(color = "black", size = 20, face = "bold"),
+    plot.subtitle = element_text(size = 18),
+    axis.ticks = element_line(size = 1.25),  # Adjusted size here
+    legend.position = "none"
+  ) +
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ylab("Max height (cm)")
