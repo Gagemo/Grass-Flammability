@@ -1,6 +1,6 @@
-"PC1","PC2","Flammability"
-"Flame Duration",-1.53945824743629,1.10382621419861,"Flame Duration"
-"Smolder Time",-0.767567763993377,-1.76365998659221,"Smolder Time"
-"Flame Height",1.39570508264481,-0.945430713865424,"Flame Height"
-"Mass Loss",1.41523740687308,0.411640956545453,"Mass Loss"
-"Mass Rate",1.87827159691475,0.576348272175215,"Mass Rate"
+,PC1,PC2,
+Flame Duration,-1.54,1.10,Flame Duration
+Smolder Time,-0.77,-1.76,Smolder Time
+Flame Height,1.40,-0.95,Flame Height
+Mass Loss,1.42,0.41,Mass Loss
+Mass Rate,1.88,0.58,Mass Rate

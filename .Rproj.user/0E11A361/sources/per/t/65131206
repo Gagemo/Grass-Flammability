@@ -3,7 +3,7 @@
     "path": "~/GitHub/Grass-Flammability/Scripts/Flame_Height.R",
     "project_path": "Scripts/Flame_Height.R",
     "type": "r_source",
-    "hash": "475919256",
+    "hash": "1177157029",
     "contents": "",
     "dirty": false,
     "created": 1722270648670.0,
@@ -12,15 +12,15 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "148,0",
-        "scrollLine": "50"
+        "cursorPosition": "152,0",
+        "scrollLine": "124"
     },
     "folds": "",
-    "lastKnownWriteTime": 1722282583,
+    "lastKnownWriteTime": 1722359017,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1722282583431,
+    "last_content_update": 1722359017398,
     "read_only": false,
     "read_only_alternatives": []
 }

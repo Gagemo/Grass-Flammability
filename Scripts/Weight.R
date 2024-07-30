@@ -112,6 +112,10 @@ cld_df <- as.data.frame(cld_results)
 # Merge with the original data
 fuel_data <- merge(data, cld_df, by = "Species")
 
+# The palette without black:
+cbbPalette <- c("#BE0032", "#E69F00", "#56B4E9", "#009E73", "#F0E442", 
+                "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
 box = 
   ggplot(data, aes(x = Species, y = Mass_Loss, fill = Species)) +
   geom_boxplot() +
@@ -134,8 +138,8 @@ box =
     strip.text = element_text(color = "black", size = 20, face = "bold"),
     plot.subtitle = element_text(size = 18),
     axis.ticks = element_line(size = 1.25),  # Adjusted size here
-    legend.position = "none"
-  ) +
+    legend.position = "none") +
+  scale_fill_manual(values = cbbPalette) +
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ylab("Mass loss (g)")
