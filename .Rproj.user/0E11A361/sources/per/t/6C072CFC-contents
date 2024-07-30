@@ -111,11 +111,16 @@ dt <- data %>%
 cld2 <- data.frame(letters = tukey.cld$`Species`$Letters)
 dt$tukey.cld <- cld2$letters
 
+# The palette without black:
+cbbPalette <- c("#BE0032", "#E69F00", "#56B4E9", "#009E73", "#F0E442", 
+                "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
 fb_box = 
   ggplot(data, aes(x = Species, y = FB, fill = Species)) + 
   geom_boxplot() +
   geom_point(shape=16, show.legend = FALSE, size =2) +
   geom_text(data = dt, aes(label = tukey.cld, y = 20), size=10, vjust = 0.5) +
+  labs(subtitle = get_test_label(anova_, detailed = TRUE)) +
   theme_classic() +
   theme(
     panel.grid.major = element_blank(),
@@ -131,11 +136,11 @@ fb_box =
     strip.text = element_text(color = "black", size = 20, face = "bold"),
     plot.subtitle = element_text(size = 18),
     axis.ticks = element_line(size = 1.25),  # Adjusted size here
-    legend.position = "none"
-  ) +
+    legend.position = "none") +
+  scale_fill_manual(values = cbbPalette) +
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ylab("Height (cm)")
+  ylab("Fuel bed height (cm)")
 fb_box
 
 ggsave("Figures/FB_Height.png", 

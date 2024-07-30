@@ -1,0 +1,7 @@
+"rowname","FB","Max Flame Height","Flame Duration","Smoldering Duration","Mass Loss","Mass Loss Rate"
+"FB",0,8.16e-12,8.26e-06,0.884,0.0637,0.000222
+"Max Flame Height",8.16e-12,0,4.73e-10,0.902,0.0209,2.7e-05
+"Flame Duration",8.26e-06,4.73e-10,0,0.107,0.00211,7.84e-10
+"Smoldering Duration",0.884,0.902,0.107,0,0.0323,1.8e-09
+"Mass Loss",0.0637,0.0209,0.00211,0.0323,0,3e-09
+"Mass Loss Rate",0.000222,2.7e-05,7.84e-10,1.8e-09,3e-09,0
