@@ -1,7 +1,7 @@
 ################################################################################
 ################################################################################
 #########################   data - Flammability   #############################
-#########################         Mass Loss        #############################
+#########################      Smolder Duration    #############################
 #########################  University of Florida   #############################
 #########################     Gage LaPierre        #############################
 #########################          2023            #############################
@@ -12,11 +12,11 @@
 
 rm(list=ls(all=TRUE))
 cat("\014") 
-
+#
 #########################     Installs Packages   ##############################
 
 list.of.packages <- c("tidyverse", "vegan", "agricolae", "tables", "plotrix",
-                      "ggpubr", "rstatix", "multcompView", "emmeans", "multcomp")
+                      "ggpubr", "rstatix", "multcompView", "emmeans")
 new.packages <- list.of.packages[!(list.of.packages %in% 
                                      installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -31,37 +31,32 @@ library(plotrix)
 library(ggpubr)
 library(rstatix)
 library(multcompView)
-library(multcomp)
 library(emmeans)
 
 ##########################     Read in Data  ###################################
 
-data = read.csv("Data/Flammability Project - Weight.csv")
+data = read.csv("Data/Flammability Project - Time.csv")
 
 str(data)
 summary(data)
 
 data$Species = as.character(data$Species)
-data$Mass_Loss = as.numeric(data$Mass_Loss)
+data$Smld_Total = as.numeric(data$Smld_Total)
 data$FB = as.numeric(data$FB)
 
 data$Species = factor(data$Species)
 
-data %>% anova_test(Mass_Loss ~ FB + Species)
-cor.test(data$Mass_Loss, data$FB)
+data %>% anova_test(Smld_Total ~ FB + Species)
+cor.test(data$Smld_Total, data$FB)
 
 # Check Assumptions #
-model  <- lm(Mass_Loss ~ FB + Species, data = data)
+model  <- lm(Smld_Total ~ FB + Species, data = data)
 # Inspect the model diagnostic metrics
 model.metrics <- augment(model)
 head(model.metrics, 3)
 
 # Create a QQ plot of residuals
 ggqqplot(residuals(model))
-
-# Compute Shapiro-Wilk test of normality
-shapiro_test(residuals(model))
-plot(model, 1)
 
 # Compute Shapiro-Wilk test of normality
 model.metrics %>% levene_test(.resid ~ Species)
@@ -73,13 +68,13 @@ model.metrics %>%
   as.data.frame()
 
 # Test for Significance #
-anova_ = data %>% anova_test(Mass_Loss ~ FB + Species) %>% 
+anova_ = data %>% anova_test(Smld_Total ~ FB + Species) %>% 
   add_significance()
 anova_
 
 pwc <- data %>% 
   emmeans_test(
-    Mass_Loss ~ Species, covariate = FB,
+    Smld_Total ~ Species, covariate = FB,
     p.adjust.method = "bonferroni"
   )
 pwc
@@ -97,14 +92,13 @@ ggline(get_emmeans(pwc), x = "Species", y = "emmean") +
   )
 
 # Fit the ANOVA model
-anova <- aov(Mass_Loss ~ FB + Species, data = data)
-
+anova <- aov(Smld_Total ~ FB + Species, data = data)
+anova
 # Perform post-hoc tests on the Species factor
 posthoc_results <- emmeans(anova, pairwise ~ Species)
 
 # Generate compact letter displays for significance testing
-cld_results <- multcomp::cld(posthoc_results$emmeans, Letters = letters, 
-                             adjust = "bonferroni")
+cld_results <- multcomp::cld(posthoc_results$emmeans, Letters = letters, adjust = "tukey")
 
 # Convert cld_results to a data frame
 cld_df <- as.data.frame(cld_results)
@@ -112,12 +106,15 @@ cld_df <- as.data.frame(cld_results)
 # Merge with the original data
 fuel_data <- merge(data, cld_df, by = "Species")
 
+# The palette without black:
+cbbPalette <- c("#BE0032", "#E69F00", "#56B4E9", "#009E73", "#F0E442", 
+                "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
 box = 
-  ggplot(data, aes(x = Species, y = Mass_Loss, fill = Species)) +
+  ggplot(data, aes(x = Species, y = Smld_Total, fill = Species)) +
   geom_boxplot() +
-  geom_text(data = cld_df, aes(x = Species, 
-                               label = .group, y = 100), size=10) +
-  geom_point(shape=16, show.legend = FALSE, size =2)  +
+  geom_text(data = cld_df, aes(x = Species, label = .group, y = 210), size = 10) +
+  geom_point(shape = 16, show.legend = FALSE, size = 2) +
   labs(subtitle = get_test_label(anova_, detailed = TRUE)) +
   theme_classic() +
   theme(
@@ -134,17 +131,19 @@ box =
     strip.text = element_text(color = "black", size = 20, face = "bold"),
     plot.subtitle = element_text(size = 18),
     axis.ticks = element_line(size = 1.25),  # Adjusted size here
-    legend.position = "none"
-  ) +
+    legend.position = "none") +
+  scale_fill_manual(values = cbbPalette) +
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ylab("Mass loss (g)")
-box
+  ylab("Smolder duration (s)")
 
-ggsave("Figures/Box_MassLoss.png", 
+print(box)
+
+ggsave("Figures/Box_SmolderDuration.png", 
        width = 10, height = 7)
 
 # Create the table
 print(MEANS)
 MEANS = as.data.frame(MEANS)
-write.csv(MEANS, "Figures/MassLoss.csv", row.names = FALSE)
+write.csv(MEANS, "Figures/SmolderDuration.csv", row.names = FALSE)
+
+
