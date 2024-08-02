@@ -42,27 +42,30 @@ data <- cbind(TIME, LOSS)
 data$FB = as.numeric(data$FB)
 data <- data[ , !duplicated(colnames(data))]
 data <- data %>%
-  dplyr::select(Species, FB, Flame_Total, Smld_Total, Max_Height, Mass_Loss)
+  dplyr::select(Species, FB, Flame_Total, Smld_Total, Max_Height, Mass_Loss, Mass_Rate)
 colnames(data) <- c("Species", "Fuel Bed Height", "Flame Duration", 
-                    "Smolder Duration", "Flame Height", "Mass Loss")
+                    "Smolder Duration", "Flame Height", "Mass Loss", "Mass Rate")
 
 # Fit linear models with fuel bed height as a covariate
 flame_duration_model <- lm(`Flame Duration` ~ Species + `Fuel Bed Height`, data = data)
 smolder_duration_model <- lm(`Smolder Duration` ~ Species + `Fuel Bed Height`, data = data)
 flame_height_model <- lm(`Flame Height` ~ Species + `Fuel Bed Height`, data = data)
 mass_loss_model <- lm(`Mass Loss` ~ Species + `Fuel Bed Height`, data = data)
+mass_rate_model <- lm(`Mass Rate` ~ Species + `Fuel Bed Height`, data = data)
 
 # Calculate EMMs for each variable
 flame_duration_emm <- emmeans(flame_duration_model, ~ Species)
 smolder_duration_emm <- emmeans(smolder_duration_model, ~ Species)
 flame_height_emm <- emmeans(flame_height_model, ~ Species)
 mass_loss_emm <- emmeans(mass_loss_model, ~ Species)
+mass_rate_emm <- emmeans(mass_rate_model, ~ Species)
 
 # Summarize EMMs
 flame_duration_summary <- summary(flame_duration_emm)
 smolder_duration_summary <- summary(smolder_duration_emm)
 flame_height_summary <- summary(flame_height_emm)
 mass_loss_summary <- summary(mass_loss_emm)
+mass_rate_summary <- summary(mass_rate_emm)
 
 # Combine the summaries into a single data frame
 emm_results <- data.frame(
@@ -70,21 +73,20 @@ emm_results <- data.frame(
   `Flame Duration EMM` = flame_duration_summary$emmean,
   `Smolder Duration EMM` = smolder_duration_summary$emmean,
   `Flame Height EMM` = flame_height_summary$emmean,
-  `Mass Loss EMM` = mass_loss_summary$emmean
+  `Mass Loss EMM` = mass_loss_summary$emmean,
+  `Mass Rate EMM` = mass_rate_summary$emmean
+  
 )
 
+colnames(emm_results) <- c("Species", "Flame duration (s)","Smolder duration (s)", 
+                           "Flame height (cm)", "Mass loss (g)", "Mass loss rate (g/s)")
 print(emm_results)
-
-
-data <- emm_results %>%
-  group_by(Species) %>%
-  summarise(across(`Flame Duration`:`Smolder Duration`: `Flame Height`:`Mass Loss`, mean, na.rm = TRUE))
 
 # The palette without black:
 cbbPalette <- c("#BE0032", "#E69F00", "#56B4E9", "#009E73", "#F0E442", 
                 "#0072B2", "#D55E00", "#CC79A7", "#999999")
 
-ggplot(emm_results, aes(x = Flame.Duration.EMM, y = Flame.Height.EMM)) +
+ggplot(emm_results, aes(x = `Flame duration (s)`, y = `Flame height (cm)`)) +
   geom_point(aes(fill = Species), shape = 21, size = 8) +
   theme_classic() +
   theme(panel.grid.major = element_blank(),
@@ -104,7 +106,7 @@ ggplot(emm_results, aes(x = Flame.Duration.EMM, y = Flame.Height.EMM)) +
         legend.spacing.y = unit(1.0, 'cm'), legend.spacing = unit(1.0, 'cm')) +
   guides(fill = guide_legend(byrow = TRUE))
 
-ggplot(emm_results, aes(x = Smolder.Duration.EMM, y = Mass.Loss.EMM)) +
+ggplot(emm_results, aes(x = `Smolder duration (s)`, y = `Mass loss rate (g/s)`)) +
   geom_point(aes(fill = Species), shape = 21, size = 8) +
   theme_classic() +
   theme(panel.grid.major = element_blank(),
