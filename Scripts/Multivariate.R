@@ -1,0 +1,203 @@
+################################################################################
+################################################################################
+#########################     Grass - Flammability      ###########################
+#####################  PERMANOVA, MANCOVA, Regression   #########################
+#########################     University of Florida      #######################
+#########################         Gage LaPierre          #######################
+#########################             2023               #######################
+################################################################################
+################################################################################
+
+######################### Clears Environment & History #########################
+
+rm(list=ls(all=TRUE))
+cat("\014")
+
+#########################      Installs Packages      ###########################
+# This code checks if the necessary packages are installed. If not, it installs
+# them automatically to ensure the script runs smoothly.
+# The `janitor` and `openxlsx` packages have been added.
+
+list.of.packages <- c("dplyr", "vegan", "multcomp", "janitor", "openxlsx")
+new.packages <- list.of.packages[!(list.of.packages %in%
+                                     installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+# Install and load necessary packages
+library(dplyr)
+library(vegan)
+library(multcomp)
+library(janitor)
+library(openxlsx)
+
+# --- Step 1: Load and prepare the data ---
+time_df_raw <- read.csv("Data/Flammability Project - Time.csv")
+weight_df_raw <- read.csv("Data/Flammability Project - Weight.csv")
+temp_df_raw <- read.csv("Data/Flammability Project - Temp.csv")
+
+# Clean column names using janitor::clean_names() for consistency
+time_df <- time_df_raw %>% clean_names()
+weight_df <- weight_df_raw %>% clean_names()
+temp_df <- temp_df_raw %>% clean_names()
+
+# Aggregate the temperature data by taking the maximum temperature for each ID.
+data_temp <- temp_df %>%
+  mutate(t1 = as.numeric(t1),
+         t2 = as.numeric(t2)) %>%
+  filter(!is.na(t1) & !is.na(t2)) %>%
+  group_by(id) %>%
+  summarise(Temp_Fuel_Bed = max(t1, na.rm = TRUE),
+            Temp_10cm_Above = max(t2, na.rm = TRUE),
+            .groups = 'drop')
+
+# Merge all three dataframes based on the 'id' column.
+flammability_data <- time_df %>%
+  dplyr::select(id, species, ruderal, fb, flame_total, smld_total, max_height) %>%
+  inner_join(dplyr::select(weight_df, id, mass_loss, mass_rate), by = "id") %>%
+  inner_join(data_temp, by = "id")
+
+# Select the flammability metrics for the multivariate analyses.
+flam_metrics <- flammability_data %>%
+  dplyr::select(
+    id,
+    species,
+    fb,
+    flame_total,
+    smld_total,
+    mass_loss,
+    mass_rate,
+    max_height,
+    Temp_Fuel_Bed,
+    Temp_10cm_Above
+  ) %>%
+  rename(
+    Fuelbed_Height = fb,
+    Flame_Duration = flame_total,
+    Smoldering_Duration = smld_total,
+    Mass_Loss = mass_loss,
+    Mass_Rate = mass_rate,
+    Max_Flame_Height = max_height
+  )
+
+# Convert the Species column to a factor
+flam_metrics$species <- as.factor(flam_metrics$species)
+
+# Drop any rows with missing data (NA values) to ensure the analyses run correctly.
+flam_metrics <- na.omit(flam_metrics)
+
+# --- Step 2: Perform MANCOVA ---
+response_vars <- as.matrix(flam_metrics[, c("Flame_Duration", "Smoldering_Duration",
+                                            "Mass_Loss", "Mass_Rate",
+                                            "Max_Flame_Height", "Temp_Fuel_Bed",
+                                            "Temp_10cm_Above")])
+mancova_model <- manova(response_vars ~ species + Fuelbed_Height, data = flam_metrics)
+summary(mancova_model)
+summary.aov(mancova_model)
+
+# --- NEW: Save individual ANOVA results to Excel ---
+cat("\n--- Saving MANCOVA individual ANOVA results to Excel ---\n")
+aov_list <- summary.aov(mancova_model)
+aov_results_list <- list()
+
+for (i in 1:length(aov_list)) {
+  variable_name <- names(aov_list)[i]
+  df <- as.data.frame(aov_list[[i]])
+  df$Source <- rownames(df)
+  df <- df %>% 
+    dplyr::select(Source, everything())
+  aov_results_list[[variable_name]] <- df
+}
+
+write.xlsx(aov_results_list, "MANCOVA_AOV_Results.xlsx")
+
+# --- Post-Hoc Tests for MANCOVA with robust error handling and expanded results ---
+run_posthoc_tukey <- function(metric, data) {
+  cat(paste0("\n--- Post-Hoc Test for ", metric, " using TukeyHSD() ---\n"))
+  
+  if (metric %in% c("Temp_Fuel_Bed", "Temp_10cm_Above")) {
+    cat(paste0("Skipping post-hoc test for ", metric, " as main effect 'species' was not significant.\n"))
+    return(NULL)
+  }
+  
+  aov_model <- aov(as.formula(paste(metric, "~ species")), data = data)
+  
+  tukey_result <- tryCatch({
+    TukeyHSD(aov_model, "species")
+  }, error = function(e) {
+    cat(paste0("Error in TukeyHSD for ", metric, ": ", conditionMessage(e), "\n"))
+    return(NULL)
+  }, warning = function(w) {
+    cat(paste0("Warning in TukeyHSD for ", metric, ": ", conditionMessage(w), "\n"))
+    return(NULL)
+  })
+  
+  if (is.null(tukey_result) || is.null(tukey_result$species)) {
+    cat(paste0("TukeyHSD test for ", metric, " failed to produce a valid result.\n"))
+    return(NULL)
+  }
+  
+  result_df <- as.data.frame(tukey_result$species)
+  result_df$Comparison <- rownames(result_df)
+  result_df <- result_df %>% 
+    dplyr::select(Comparison, everything()) %>%
+    rename(
+      Estimate = diff,
+      `Std Error` = `lwr`,
+      L_Bound = `lwr`,
+      U_Bound = `upr`,
+      P_Value = `p adj`
+    )
+  
+  return(result_df)
+}
+
+metrics_to_test <- c("Flame_Duration", "Smoldering_Duration", "Mass_Loss", "Mass_Rate",
+                     "Max_Flame_Height", "Temp_Fuel_Bed", "Temp_10cm_Above")
+
+posthoc_results <- lapply(metrics_to_test, run_posthoc_tukey, data = flam_metrics)
+names(posthoc_results) <- metrics_to_test
+
+write.xlsx(posthoc_results, "MANCOVA_Expanded_Results.xlsx")
+
+# --- Step 3: Perform PERMANOVA ---
+flam_dist <- vegdist(response_vars, method = "euclidean")
+permanova_result <- adonis2(flam_dist ~ species + Fuelbed_Height, data = flam_metrics)
+write.xlsx(permanova_result, "PERMANOVA_Results.xlsx", row.names = FALSE)
+
+# --- Step 4: Perform PC Regression on the first two PCs ---
+pca_result <- prcomp(response_vars, scale = TRUE)
+flam_metrics$PC1 <- pca_result$x[,1]
+flam_metrics$PC2 <- pca_result$x[,2]
+pc1_aov <- aov(PC1 ~ species, data = flam_metrics)
+summary(pc1_aov)
+pc2_aov <- aov(PC2 ~ species, data = flam_metrics)
+summary(pc2_aov)
+
+# --- Post-Hoc Test for PC2 ANOVA and PC1 ANOVA with robust handling ---
+cat("\n--- Post-Hoc Test for PC1 ANOVA ---\n")
+posthoc_pc1 <- tryCatch({
+  glht(pc1_aov, linfct = mcp(species = "Tukey"))
+}, error = function(e) {
+  cat("Error in post-hoc test for PC1: ", conditionMessage(e), "\n")
+  return(NULL)
+}, warning = function(w) {
+  cat("Warning in post-hoc test for PC1: ", conditionMessage(w), "\n")
+  return(NULL)
+})
+if (!is.null(posthoc_pc1)) {
+  summary(posthoc_pc1)
+}
+
+cat("\n--- Post-Hoc Test for PC2 ANOVA ---\n")
+posthoc_pc2 <- tryCatch({
+  glht(pc2_aov, linfct = mcp(species = "Tukey"))
+}, error = function(e) {
+  cat("Error in post-hoc test for PC2: ", conditionMessage(e), "\n")
+  return(NULL)
+}, warning = function(w) {
+  cat("Warning in post-hoc test for PC2: ", conditionMessage(w), "\n")
+  return(NULL)
+})
+if (!is.null(posthoc_pc2)) {
+  summary(posthoc_pc2)
+}
