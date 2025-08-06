@@ -2,9 +2,9 @@
 ################################################################################
 #########################     Grass - Flammability      ###########################
 #####################  PERMANOVA, MANCOVA, Regression   #########################
-#########################     University of Florida      #######################
-#########################         Gage LaPierre          #######################
-#########################             2023               #######################
+#########################     University of Florida     #######################
+#########################         Gage LaPierre         #######################
+#########################            2023               #######################
 ################################################################################
 ################################################################################
 
@@ -13,7 +13,7 @@
 rm(list=ls(all=TRUE))
 cat("\014")
 
-#########################      Installs Packages      ###########################
+#########################     Installs Packages       ###########################
 # This code checks if the necessary packages are installed. If not, it installs
 # them automatically to ensure the script runs smoothly.
 # The `janitor` and `openxlsx` packages have been added.
@@ -84,6 +84,16 @@ flam_metrics$species <- as.factor(flam_metrics$species)
 
 # Drop any rows with missing data (NA values) to ensure the analyses run correctly.
 flam_metrics <- na.omit(flam_metrics)
+
+# Step to analyze Fuelbed_Height with ANOVA ---
+cat("\n--- Running ANOVA for Fuelbed_Height by Species ---\n")
+anova_fb_model <- aov(Fuelbed_Height ~ species, data = flam_metrics)
+summary(anova_fb_model)
+
+# Post-hoc test for Fuelbed_Height ANOVA ---
+cat("\n--- Post-Hoc Test for Fuelbed_Height using TukeyHSD() ---\n")
+tukey_fb_result <- TukeyHSD(anova_fb_model, "species")
+print(tukey_fb_result)
 
 # --- Step 2: Perform MANCOVA ---
 response_vars <- as.matrix(flam_metrics[, c("Flame_Duration", "Smoldering_Duration",
@@ -156,14 +166,13 @@ metrics_to_test <- c("Flame_Duration", "Smoldering_Duration", "Mass_Loss", "Mass
 
 posthoc_results <- lapply(metrics_to_test, run_posthoc_tukey, data = flam_metrics)
 names(posthoc_results) <- metrics_to_test
-
 write.xlsx(posthoc_results, "MANCOVA_Expanded_Results.xlsx")
 
 # --- Step 3: Perform PERMANOVA ---
 flam_dist <- vegdist(response_vars, method = "euclidean")
 permanova_result <- adonis2(flam_dist ~ species + Fuelbed_Height, data = flam_metrics)
 write.xlsx(permanova_result, "PERMANOVA_Results.xlsx", row.names = FALSE)
-
+permanova_result
 # --- Step 4: Perform PC Regression on the first two PCs ---
 pca_result <- prcomp(response_vars, scale = TRUE)
 flam_metrics$PC1 <- pca_result$x[,1]

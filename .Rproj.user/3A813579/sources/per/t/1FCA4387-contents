@@ -1,10 +1,10 @@
 ################################################################################
 ################################################################################
-#########################    Grass - Flammability    ###########################
-#########################           PCA              ###########################
-#########################     University of Florida      #######################
-#########################          Gage LaPierre         #######################
-#########################             2023               #######################
+#########################      Grass - Flammability      ###########################
+#########################              PCA             ###########################
+#########################      University of Florida       #######################
+#########################         Gage LaPierre          #######################
+#########################               2023               #######################
 ################################################################################
 ################################################################################
 
@@ -13,19 +13,19 @@
 rm(list=ls(all=TRUE))
 cat("\014")
 
-#########################      Installs Packages     ###########################
+#########################      Installs Packages      ###########################
 # This code checks if the necessary packages are installed. If not, it installs
 # them automatically to ensure the script runs smoothly.
-# The `janitor` package has been added to handle problematic column names.
+# The `janitor`, `ggdendro` and `ggfortify` packages have been added.
 
 list.of.packages <- c("tidyverse", "vegan", "agricolae", "tables", "plotrix",
                       "ggpubr", "rstatix", "multcompView", "factoextra",
-                      "FactoMineR", "janitor")
+                      "FactoMineR", "janitor", "ggdendro", "ggfortify")
 new.packages <- list.of.packages[!(list.of.packages %in%
                                      installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
-##########################      Loads Packages      ############################
+##########################      Loads Packages       ###########################
 
 library(tidyverse)
 library(vegan)
@@ -38,6 +38,8 @@ library(multcompView)
 library(factoextra)
 library(FactoMineR)
 library(janitor)
+library(ggdendro)
+library(ggfortify)
 
 ##########################        Read in Data       ###########################
 # Read in all three CSV files, correcting the file paths.
@@ -103,7 +105,7 @@ pca <- pca_data %>%
 # Extract the scores for the sites (data points)
 pca_scores <- as.data.frame(vegan::scores(pca, choices = c(1, 2), display = "sites"))
 pca_scores$Species <- data_final$species  # Add species information
-pca_scores$Status <- data_final$ruderal   # Add status information
+pca_scores$Status <- data_final$ruderal    # Add status information
 
 # Extract the loadings for plotting arrows
 loadings <- as.data.frame(vegan::scores(pca, display = "species"))
@@ -183,3 +185,47 @@ var
 fviz_contrib(res.pca, choice = "var", axes = 1, top = 10)
 # Contributions of variables to PC2
 fviz_contrib(res.pca, choice = "var", axes = 2, top = 10)
+
+
+################################################################################
+#####################   NEW: Hierarchical Cluster Analysis  ####################
+################################################################################
+# The reviewer requested a cluster analysis to see how species group based on
+# their overall flammability profiles.
+
+# We will use the same standardized data as for the PCA.
+# First, we need to create a species-level average for each metric
+species_flam_metrics <- data_final %>%
+  dplyr::select(species, flame_total, smld_total, max_height,
+                mass_loss, mass_rate, Temp_Fuel_Bed, Temp_10cm_Above) %>%
+  group_by(species) %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE), .groups = 'drop') %>%
+  column_to_rownames("species")
+
+# Now, standardize the data to ensure each metric is weighted equally
+scaled_species_metrics <- scale(species_flam_metrics)
+
+# Calculate the distance matrix using Euclidean distance
+distance_matrix <- dist(scaled_species_metrics, method = "euclidean")
+
+# Perform hierarchical clustering using Ward's method
+hc_result <- hclust(distance_matrix, method = "ward.D2")
+hc_result
+
+# Plot the dendrogram using the ggdendro package
+# The dendrogram visually represents which species are most similar.
+ggdendro::ggdendrogram(hc_result, rotate = TRUE, size = 2, color = as.factor(col)) +
+  labs(title = "Hierarchical Cluster Analysis of Species Flammability Profiles",
+       x = "Species",
+       y = "Distance") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+    axis.text.x = element_text(size = 12, face = "italic", color = "black"),
+    axis.text.y = element_text(size = 12, face = "bold", color = "black"),
+    axis.title.x = element_text(size = 14, face = "bold"),
+    axis.title.y = element_text(size = 14, face = "bold")
+  )
+
+# Save the dendrogram figure
+ggsave("Figures/Dendrogram.png",
+       width = 10, height = 7)
