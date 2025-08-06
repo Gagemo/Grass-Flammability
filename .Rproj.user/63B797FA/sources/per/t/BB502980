@@ -1,20 +1,17 @@
 {
-    "id": "03EA81F3",
-    "path": "~/GitHub/Grass-Flammability/Scripts/PCA.R",
-    "project_path": "Scripts/PCA.R",
+    "id": "BB502980",
+    "path": "~/GitHub/Grass-Flammability/Scripts/Multivariate.R",
+    "project_path": "Scripts/Multivariate.R",
     "type": "r_source",
-    "hash": "892523934",
+    "hash": "4241179779",
     "contents": "",
     "dirty": false,
-    "created": 1722130478909.0,
+    "created": 1754354525006.0,
     "source_on_save": false,
-    "relative_order": 1,
+    "relative_order": 2,
     "properties": {
-        "tempName": "Untitled1",
         "source_window_id": "",
-        "Source": "Source",
-        "cursorPosition": "7,21",
-        "scrollLine": "0"
+        "Source": "Source"
     },
     "folds": "",
     "lastKnownWriteTime": 1754354478,
