@@ -1,10 +1,10 @@
 ################################################################################
 ################################################################################
 ######################  R Script for Flammability Plots  #######################
-######################       Updated for MANCOVA       #########################
+######################        Updated for MANCOVA      #########################
 ######################     University of Florida      ##########################
 ######################          Gage LaPierre          #########################
-######################             2023               ##########################
+######################              2023               ##########################
 ################################################################################
 ################################################################################
 
@@ -13,7 +13,7 @@
 rm(list=ls(all=TRUE))
 cat("\014")
 
-#########################      Installs Packages      ##########################
+#########################     Installs Packages      ##########################
 # This code checks if the necessary packages are installed. If not, it installs
 # them automatically to ensure the script runs smoothly.
 # The `janitor` package has been added to handle problematic column names.
@@ -24,7 +24,7 @@ new.packages <- list.of.packages[!(list.of.packages %in%
                                      installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
-##########################      Loads Packages       ###########################
+##########################      Loads Packages        ###########################
 
 library(tidyverse)
 library(vegan)
@@ -34,9 +34,8 @@ library(ggpubr)
 library(cowplot)
 library(janitor)
 
-##########################        Read in Data       ###########################
+##########################        Read in Data        ###########################
 # Read in the three CSV files from the current directory.
-# The previous version had an incorrect file path (e.g., "Data/...")
 # We first clean and aggregate the data from each file before merging.
 
 data_time_raw <- read.csv("Data/Flammability Project - Time.csv")
@@ -82,12 +81,26 @@ data_final <- data_time_clean %>%
 str(data_final)
 summary(data_final)
 
-# Now, we will define the list of metrics we want to plot.
-# This allows us to loop through each one to create the individual plots.
+# View all unique species names in your data
+unique_species <- unique(data_final$species)
+print(unique_species)
+
+# Correctly reorder species with all species names listed
+data_final$species <- factor(data_final$species,
+                             levels = c("Aristida beyrichiana",
+                                        "Andropogon ternarius",
+                                        "Andropogon virginicus",
+                                        "Andropogon glomeratus",
+                                        "Sorghastrum secundum",
+                                        "Schizachyrium stoloniferum",
+                                        "Sprobulus juncus",
+                                        "Eustachys petraea",
+                                        "Eragrostis spectabilis"))
+
+# Updated list of metrics to plot, with Fuel_Bed_Height added and temps removed
 metrics_to_plot <- c(
   "Fuel_Bed_Height", "Max_Flame_Height", "Flame_Duration",
-  "Smoldering_Duration", "Mass_Loss", "Mass_Loss_Rate",
-  "Temp_Fuel_Bed", "Temp_10cm_Above"
+  "Smoldering_Duration", "Mass_Loss", "Mass_Loss_Rate"
 )
 
 # Create a list to store all the generated plots
@@ -99,20 +112,79 @@ cbbPalette <- c("#BE0032", "#E69F00", "#56B4E9", "#009E73", "#F0E442",
 
 # Loop through each metric to generate a box plot
 for (metric_name in metrics_to_plot) {
-  # The aov() is a practical way to get the post-hoc tests for individual
-  # metrics after a significant MANCOVA.
-  # The formula uses the current metric name and controls for Fuel_Bed_Height.
-  formula_aov <- as.formula(paste(metric_name, "~ Fuel_Bed_Height + species"))
-  anova_model <- aov(formula_aov, data = data_final)
+  # Initialize variables for the plot title, as they are not needed for Fuel_Bed_Height
+  f_value <- NA
+  p_value <- NA
+  plot_title <- ""
   
-  # Perform post-hoc Tukey HSD test on the `species` factor
-  tukey_results <- TukeyHSD(anova_model)
-  
-  # Get the compact letter display (CLD) for the `species` factor
-  cld <- multcompLetters(extract_p(tukey_results$species))
-  cld_df <- as.data.frame(cld$Letters)
-  cld_df$species <- row.names(cld_df)
-  colnames(cld_df) <- c("letters", "species")
+  # Conditional logic to handle the Fuel_Bed_Height plot differently
+  if (metric_name == "Fuel_Bed_Height") {
+    # Perform a one-way ANOVA to compare Fuel_Bed_Height among species
+    anova_model <- aov(Fuel_Bed_Height ~ species, data = data_final)
+    
+    # Get anova statistics
+    anova_summary <- summary(anova_model)
+    f_value <- anova_summary[[1]]["species", "F value"]
+    p_value <- anova_summary[[1]]["species", "Pr(>F)"]
+    
+    # Set the plot title and label
+    plot_title <- "A) Fuel Bed Height (cm)"
+    
+    # Add the anova statistics to the title
+    stats_text <- paste0(" (F=", round(f_value, 2), ", p=", format.pval(p_value, digits = 2, eps = 0.001), ")")
+    plot_title <- paste0(plot_title, stats_text)
+    
+    # Perform post-hoc Tukey HSD test on the `species` factor
+    tukey_results <- TukeyHSD(anova_model, which = "species")
+    
+    # Get the compact letter display (CLD) for the `species` factor
+    cld <- multcompLetters(extract_p(tukey_results$species))
+    cld_df <- as.data.frame(cld$Letters)
+    cld_df$species <- row.names(cld_df)
+    colnames(cld_df) <- c("letters", "species")
+  } else {
+    # For all other metrics, run the MANCOVA-based ANOVA and Tukey tests
+    formula_aov <- as.formula(paste(metric_name, "~ Fuel_Bed_Height + species"))
+    anova_model <- aov(formula_aov, data = data_final)
+    
+    # Get anova statistics
+    anova_summary <- summary(anova_model)
+    f_value <- anova_summary[[1]]["species", "F value"]
+    p_value <- anova_summary[[1]]["species", "Pr(>F)"]
+    
+    # Set the plot title and label
+    if (metric_name == "Max_Flame_Height") {
+      plot_title <- "B) Max Flame Height (cm)"
+    } else if (metric_name == "Flame_Duration") {
+      plot_title <- "C) Flame Duration (s)"
+    } else if (metric_name == "Smoldering_Duration") {
+      plot_title <- "D) Smolder Duration (s)"
+    } else if (metric_name == "Mass_Loss") {
+      plot_title <- "E) Mass Loss (%)"
+    } else if (metric_name == "Mass_Loss_Rate") {
+      plot_title <- "F) Mass Loss Rate (g/s)"
+    }
+    
+    # Add the anova statistics to the title
+    stats_text <- paste0(" (F=", round(f_value, 2), ", p=", format.pval(p_value, digits = 2, eps = 0.001), ")")
+    plot_title <- paste0(plot_title, stats_text)
+    
+    # Perform post-hoc Tukey HSD test on the `species` factor
+    tukey_results <- TukeyHSD(anova_model, which = "species")
+    
+    # Add an 'if' condition to handle potential errors in the Tukey results
+    if (is.null(tukey_results$species)) {
+      # If the Tukey test fails, assign "a" to all groups to signify no significant differences
+      cld_df <- data.frame(letters = rep("a", nlevels(data_final$species)),
+                           species = levels(data_final$species))
+    } else {
+      # Otherwise, get the compact letter display (CLD) for the `species` factor
+      cld <- multcompLetters(extract_p(tukey_results$species))
+      cld_df <- as.data.frame(cld$Letters)
+      cld_df$species <- row.names(cld_df)
+      colnames(cld_df) <- c("letters", "species")
+    }
+  }
   
   # Merge the letter data with the original data for plotting
   plot_data <- data_final %>%
@@ -120,27 +192,6 @@ for (metric_name in metrics_to_plot) {
     group_by(species) %>%
     mutate(y_position = max(.data[[metric_name]], na.rm = TRUE) +
              (max(.data[[metric_name]], na.rm = TRUE) * 0.1)) # Adjust y position for labels
-  
-  # Create a custom title for each plot
-  plot_title <- ""
-  if (metric_name == "Fuel_Bed_Height") {
-    plot_title <- "A) Fuel Bed Height (cm)"
-  } else if (metric_name == "Max_Flame_Height") {
-    plot_title <- "B) Max Flame Height (cm)"
-  } else if (metric_name == "Flame_Duration") {
-    plot_title <- "C) Flame Duration (s)"
-  } else if (metric_name == "Smoldering_Duration") {
-    plot_title <- "D) Smolder Duration (s)"
-  } else if (metric_name == "Mass_Loss") {
-    plot_title <- "E) Mass Loss (%)"
-  } else if (metric_name == "Mass_Loss_Rate") {
-    plot_title <- "F) Mass Loss Rate (g/s)"
-  } else if (metric_name == "Temp_Fuel_Bed") {
-    plot_title <- "G) Temp at Fuel Bed (C)"
-  } else if (metric_name == "Temp_10cm_Above") {
-    plot_title <- "H) Temp at 10cm Above (C)"
-  }
-  
   
   # Create the ggplot boxplot
   p <- ggplot(plot_data, aes(x = species, y = .data[[metric_name]], fill = species)) +
@@ -159,10 +210,16 @@ for (metric_name in metrics_to_plot) {
       text = element_text(size = 12),
       axis.title.x = element_blank(),
       axis.title.y = element_text(size = 14, face = "bold", colour = "black"),
-      axis.text.x = element_text(size = 12, face = "italic", color = "black", angle = 45, hjust = 1),
+      # Conditionally apply x-axis labels for the bottom row plots
+      axis.text.x = if (metric_name %in% c("Mass_Loss", "Mass_Loss_Rate")) {
+        element_text(size = 12, face = "italic", color = "black", angle = 45, hjust = 1)
+      } else {
+        element_blank()
+      },
       axis.text.y = element_text(size = 12, face = "bold", color = "black"),
       legend.position = "none",
-      plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm") # Add margin
+      # Reduce top and bottom margins to decrease vertical spacing
+      plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")
     ) +
     scale_fill_manual(values = cbbPalette) +
     scale_x_discrete(labels = function(x) str_wrap(x, width = 10))
@@ -172,15 +229,11 @@ for (metric_name in metrics_to_plot) {
 }
 
 # Combine all the plots into a single figure using ggarrange.
-# The `labels` argument adds the A, B, C, ... labels.
 combined_plot <- ggarrange(plotlist = plot_list,
                            ncol = 2, nrow = 3,
-                           align = "hv",
                            common.legend = FALSE)
-
 
 # Save the final combined figure to a file.
 ggsave("Figures/Figure3_Combined_Boxplots.png",
        plot = combined_plot,
        width = 12, height = 16, units = "in")
-
