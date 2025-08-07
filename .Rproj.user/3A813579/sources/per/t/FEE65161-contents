@@ -36,68 +36,61 @@ library(janitor)
 
 ##########################        Read in Data        ###########################
 # Read in the three CSV files from the current directory.
-# We first clean and aggregate the data from each file before merging.
-
 data_time_raw <- read.csv("Data/Flammability Project - Time.csv")
 data_weight_raw <- read.csv("Data/Flammability Project - Weight.csv")
 data_temp_raw <- read.csv("Data/Flammability Project - Temp.csv")
 
-# Use janitor::clean_names() on each dataframe to standardize column names.
-# This is a robust way to handle inconsistent or duplicate column headers.
+# Corrected data cleaning and renaming block
 data_time_clean <- data_time_raw %>%
-  clean_names() %>%
-  dplyr::select(id, species, ruderal, fb, max_height, flame_total, smld_total) %>%
+  janitor::clean_names() %>%
+  # Now, we use rename() after clean_names().
+  # The column name 'fb' becomes 'fb' after janitor::clean_names()
   rename(Fuel_Bed_Height = fb,
          Max_Flame_Height = max_height,
          Flame_Duration = flame_total,
-         Smoldering_Duration = smld_total)
+         Smoldering_Duration = smld_total) %>%
+  # And then we select the columns you need
+  dplyr::select(id, species, ruderal, Fuel_Bed_Height, Max_Flame_Height,
+                Flame_Duration, Smoldering_Duration)
 
+# Corrected data cleaning and renaming block for weight data
 data_weight_clean <- data_weight_raw %>%
-  clean_names() %>%
-  dplyr::select(id, mass_loss, mass_rate) %>%
+  janitor::clean_names() %>%
   rename(Mass_Loss = mass_loss,
-         Mass_Loss_Rate = mass_rate)
+         Mass_Loss_Rate = mass_rate) %>%
+  # Now select the columns with their new names
+  dplyr::select(id, Mass_Loss, Mass_Loss_Rate)
 
-# Aggregate the temperature data by taking the maximum temperature for each ID.
-# We first filter out any rows with missing temperature values (NAs) to prevent
-# the max() function from returning -Inf and generating warnings.
 data_temp_clean <- data_temp_raw %>%
-  clean_names() %>%
+  janitor::clean_names() %>%
   filter(!is.na(t1) & !is.na(t2)) %>%
   group_by(id) %>%
   summarise(Temp_Fuel_Bed = max(t1, na.rm = TRUE),
             Temp_10cm_Above = max(t2, na.rm = TRUE),
-            .groups = 'drop') %>%
-  # The summary() output showed these were characters. Explicitly convert to numeric.
-  mutate(Temp_Fuel_Bed = as.numeric(Temp_Fuel_Bed),
-         Temp_10cm_Above = as.numeric(Temp_10cm_Above))
+            .groups = 'drop')
 
-# Merge all three cleaned dataframes into a single data frame with one row per ID.
 data_final <- data_time_clean %>%
   inner_join(data_weight_clean, by = "id") %>%
   inner_join(data_temp_clean, by = "id")
 
-# Inspect the final merged data frame to ensure it's correct
-str(data_final)
-summary(data_final)
+# Add this line after reading and cleaning the data but before the factor() call
+data_final$species <- str_replace_all(data_final$species, "Sprobulus juncus", "Sporobolus junceus")
 
-# View all unique species names in your data
-unique_species <- unique(data_final$species)
-print(unique_species)
+# Define the species order explicitly once
+species_order <- c("Aristida beyrichiana",
+                   "Andropogon ternarius",
+                   "Andropogon virginicus",
+                   "Andropogon glomeratus",
+                   "Sorghastrum secundum",
+                   "Schizachyrium stoloniferum",
+                   "Sporobolus junceus",
+                   "Eustachys petraea",
+                   "Eragrostis spectabilis")
 
-# Correctly reorder species with all species names listed
-data_final$species <- factor(data_final$species,
-                             levels = c("Aristida beyrichiana",
-                                        "Andropogon ternarius",
-                                        "Andropogon virginicus",
-                                        "Andropogon glomeratus",
-                                        "Sorghastrum secundum",
-                                        "Schizachyrium stoloniferum",
-                                        "Sprobulus juncus",
-                                        "Eustachys petraea",
-                                        "Eragrostis spectabilis"))
+# Ensure correct factor levels for all plots
+data_final$species <- factor(data_final$species, levels = species_order)
 
-# Updated list of metrics to plot, with Fuel_Bed_Height added and temps removed
+# Updated list of metrics to plot
 metrics_to_plot <- c(
   "Fuel_Bed_Height", "Max_Flame_Height", "Flame_Duration",
   "Smoldering_Duration", "Mass_Loss", "Mass_Loss_Rate"
@@ -112,73 +105,46 @@ cbbPalette <- c("#BE0032", "#E69F00", "#56B4E9", "#009E73", "#F0E442",
 
 # Loop through each metric to generate a box plot
 for (metric_name in metrics_to_plot) {
-  # Initialize variables for the plot title, as they are not needed for Fuel_Bed_Height
   f_value <- NA
   p_value <- NA
   plot_title <- ""
   
-  # Conditional logic to handle the Fuel_Bed_Height plot differently
   if (metric_name == "Fuel_Bed_Height") {
-    # Perform a one-way ANOVA to compare Fuel_Bed_Height among species
     anova_model <- aov(Fuel_Bed_Height ~ species, data = data_final)
-    
-    # Get anova statistics
     anova_summary <- summary(anova_model)
     f_value <- anova_summary[[1]]["species", "F value"]
     p_value <- anova_summary[[1]]["species", "Pr(>F)"]
-    
-    # Set the plot title and label
     plot_title <- "A) Fuel Bed Height (cm)"
-    
-    # Add the anova statistics to the title
     stats_text <- paste0(" (F=", round(f_value, 2), ", p=", format.pval(p_value, digits = 2, eps = 0.001), ")")
     plot_title <- paste0(plot_title, stats_text)
-    
-    # Perform post-hoc Tukey HSD test on the `species` factor
     tukey_results <- TukeyHSD(anova_model, which = "species")
-    
-    # Get the compact letter display (CLD) for the `species` factor
     cld <- multcompLetters(extract_p(tukey_results$species))
     cld_df <- as.data.frame(cld$Letters)
     cld_df$species <- row.names(cld_df)
     colnames(cld_df) <- c("letters", "species")
   } else {
-    # For all other metrics, run the MANCOVA-based ANOVA and Tukey tests
     formula_aov <- as.formula(paste(metric_name, "~ Fuel_Bed_Height + species"))
     anova_model <- aov(formula_aov, data = data_final)
-    
-    # Get anova statistics
     anova_summary <- summary(anova_model)
     f_value <- anova_summary[[1]]["species", "F value"]
     p_value <- anova_summary[[1]]["species", "Pr(>F)"]
     
-    # Set the plot title and label
-    if (metric_name == "Max_Flame_Height") {
-      plot_title <- "B) Max Flame Height (cm)"
-    } else if (metric_name == "Flame_Duration") {
-      plot_title <- "C) Flame Duration (s)"
-    } else if (metric_name == "Smoldering_Duration") {
-      plot_title <- "D) Smolder Duration (s)"
-    } else if (metric_name == "Mass_Loss") {
-      plot_title <- "E) Mass Loss (%)"
-    } else if (metric_name == "Mass_Loss_Rate") {
-      plot_title <- "F) Mass Loss Rate (g/s)"
-    }
+    plot_title <- case_when(
+      metric_name == "Max_Flame_Height"     ~ "B) Max Flame Height (cm)",
+      metric_name == "Flame_Duration"       ~ "C) Flame Duration (s)",
+      metric_name == "Smoldering_Duration"  ~ "D) Smolder Duration (s)",
+      metric_name == "Mass_Loss"            ~ "E) Mass Loss (%)",
+      metric_name == "Mass_Loss_Rate"       ~ "F) Mass Loss Rate (g/s)"
+    )
     
-    # Add the anova statistics to the title
     stats_text <- paste0(" (F=", round(f_value, 2), ", p=", format.pval(p_value, digits = 2, eps = 0.001), ")")
     plot_title <- paste0(plot_title, stats_text)
     
-    # Perform post-hoc Tukey HSD test on the `species` factor
     tukey_results <- TukeyHSD(anova_model, which = "species")
-    
-    # Add an 'if' condition to handle potential errors in the Tukey results
     if (is.null(tukey_results$species)) {
-      # If the Tukey test fails, assign "a" to all groups to signify no significant differences
       cld_df <- data.frame(letters = rep("a", nlevels(data_final$species)),
                            species = levels(data_final$species))
     } else {
-      # Otherwise, get the compact letter display (CLD) for the `species` factor
       cld <- multcompLetters(extract_p(tukey_results$species))
       cld_df <- as.data.frame(cld$Letters)
       cld_df$species <- row.names(cld_df)
@@ -186,31 +152,28 @@ for (metric_name in metrics_to_plot) {
     }
   }
   
-  # Merge the letter data with the original data for plotting
+  # Merge the letter data with the main data and ensure correct factor order again
   plot_data <- data_final %>%
     left_join(cld_df, by = "species") %>%
+    mutate(species = factor(species, levels = species_order)) %>%
     group_by(species) %>%
     mutate(y_position = max(.data[[metric_name]], na.rm = TRUE) +
-             (max(.data[[metric_name]], na.rm = TRUE) * 0.1)) # Adjust y position for labels
+             (max(.data[[metric_name]], na.rm = TRUE) * 0.1))
   
-  # Create the ggplot boxplot
+  # Create the plot
   p <- ggplot(plot_data, aes(x = species, y = .data[[metric_name]], fill = species)) +
     geom_boxplot() +
-    # Add the compact letters at the top of each box plot
     geom_text(data = distinct(plot_data, species, .keep_all = TRUE),
               aes(label = letters, y = y_position),
               size = 5, fontface = "bold", color = "black") +
     geom_point(shape = 16, size = 2, show.legend = FALSE) +
-    labs(title = plot_title,
-         x = "",  # Remove x-axis label for cleaner look
-         y = "") + # Remove y-axis label
+    labs(title = plot_title, x = "", y = "") +
     theme_classic() +
     theme(
       plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
       text = element_text(size = 12),
       axis.title.x = element_blank(),
       axis.title.y = element_text(size = 14, face = "bold", colour = "black"),
-      # Conditionally apply x-axis labels for the bottom row plots
       axis.text.x = if (metric_name %in% c("Mass_Loss", "Mass_Loss_Rate")) {
         element_text(size = 12, face = "italic", color = "black", angle = 45, hjust = 1)
       } else {
@@ -218,15 +181,17 @@ for (metric_name in metrics_to_plot) {
       },
       axis.text.y = element_text(size = 12, face = "bold", color = "black"),
       legend.position = "none",
-      # Reduce top and bottom margins to decrease vertical spacing
       plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")
     ) +
     scale_fill_manual(values = cbbPalette) +
-    scale_x_discrete(labels = function(x) str_wrap(x, width = 10))
+    scale_x_discrete(
+      limits = species_order,
+      labels = function(x) str_wrap(x, width = 10)
+    )
   
-  # Add the generated plot to our list
   plot_list[[metric_name]] <- p
 }
+
 
 # Combine all the plots into a single figure using ggarrange.
 combined_plot <- ggarrange(plotlist = plot_list,
@@ -234,6 +199,7 @@ combined_plot <- ggarrange(plotlist = plot_list,
                            common.legend = FALSE)
 
 # Save the final combined figure to a file.
-ggsave("Figures/Figure3_Combined_Boxplots.png",
+ggsave("Figures/Combined_Boxplots.png",
        plot = combined_plot,
        width = 12, height = 16, units = "in")
+

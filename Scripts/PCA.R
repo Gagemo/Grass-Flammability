@@ -74,6 +74,20 @@ data_final <- TIME_clean %>%
   inner_join(dplyr::select(LOSS_clean, id, mass_loss, mass_rate), by = "id") %>%
   inner_join(data_temp, by = "id")
 
+# Define the species order explicitly once
+species_order <- c("Aristida beyrichiana",
+                   "Andropogon ternarius",
+                   "Andropogon virginicus",
+                   "Andropogon glomeratus",
+                   "Sorghastrum secundum",
+                   "Schizachyrium stoloniferum",
+                   "Sporobolus junceus",
+                   "Eustachys petraea",
+                   "Eragrostis spectabilis")
+
+# Ensure correct factor levels for all plots
+data_final$species <- factor(data_final$species, levels = species_order)
+
 # Now, we will create the dataset for the PCA.
 # The `max_temp` variables (Temp_Fuel_Bed and Temp_10cm_Above) are now included.
 pca_data <- data_final %>%
@@ -111,7 +125,7 @@ pca_scores$Status <- data_final$ruderal    # Add status information
 loadings <- as.data.frame(vegan::scores(pca, display = "species"))
 loadings$Flammability <- rownames(loadings)
 
-# The palette without black:
+# Define a consistent color palette for all plots
 cbbPalette <- c("#BE0032", "#E69F00", "#56B4E9", "#009E73", "#F0E442",
                 "#0072B2", "#D55E00", "#CC79A7", "#999999")
 
