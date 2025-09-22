@@ -125,13 +125,21 @@ pca_scores$Status <- data_final$ruderal    # Add status information
 loadings <- as.data.frame(vegan::scores(pca, display = "species"))
 loadings$Flammability <- rownames(loadings)
 
-# Define a consistent color palette for all plots
+# Define a color palette for both fill and border colors
 cbbPalette <- c("#BE0032", "#E69F00", "#56B4E9", "#009E73", "#F0E442",
                 "#0072B2", "#D55E00", "#CC79A7", "#999999")
 
-# Plot 1: PCA biplot colored by Species
+# Define a vector of nine unique shape values.
+# PCH codes 0-8 are distinct, non-filled shapes.
+# The `color` aesthetic will control their appearance.
+# PCH codes 21-25 are filled shapes, with a border controlled by `color`.
+# We'll need a mix to ensure we have enough unique shapes.
+unique_shapes <- c(21, 22, 23, 24, 25, 10, 11, 12, 9)
+
+# Plot 1: PCA biplot colored and shaped by Species
 ggplot(pca_scores, aes(x = PC1, y = PC2)) +
-  geom_point(aes(fill = Species), shape = 21, size = 8) +
+  geom_point(aes(shape = Species, fill = Species, colour = Species),
+             size = 6, stroke = 1.2) +
   geom_segment(data = loadings, aes(x = 0, y = 0, xend = PC1 * 0.5, yend = PC2 * 0.5),
                arrow = arrow(length = unit(0.3, "cm")), size = 1.5, color = "black") +
   geom_text(data = loadings, aes(x = PC1 * 0.5, y = PC2 * 0.5, label = Flammability),
@@ -150,11 +158,14 @@ ggplot(pca_scores, aes(x = PC1, y = PC2)) +
         axis.text.x=element_text(size = 20, face = "bold", color = "black"),
         axis.text.y=element_text(size = 20, face = "bold", color = "black"),
         strip.text.x = element_text(size = 20, colour = "black", face = "bold"),
-        legend.text = element_text(size = 20, face = "italic")) +
+        legend.text = element_text(size = 20, face = "italic"),
+        legend.box = "horizontal",
+        legend.position = "bottom") +
   scale_fill_manual(values = cbbPalette, labels = function(x) str_wrap(x, width = 10)) +
-  theme(legend.position = "bottom", legend.spacing.x = unit(1.0, 'cm'),
-        legend.spacing.y = unit(1.0, 'cm'), legend.spacing = unit(1.0, 'cm')) +
-  guides(fill = guide_legend(byrow = TRUE))
+  scale_color_manual(values = cbbPalette, labels = function(x) str_wrap(x, width = 10)) +
+  scale_shape_manual(values = unique_shapes, labels = function(x) str_wrap(x, width = 10)) +
+  guides( shape = guide_legend(nrow = 1, byrow = TRUE,    # 2 rows
+                         override.aes = list(size = 5))) 
 
 ggsave("Figures/Box_PCA.png",
        width = 19, height = 12)
